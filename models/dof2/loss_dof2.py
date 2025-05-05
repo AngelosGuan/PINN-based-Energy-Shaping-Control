@@ -1,13 +1,14 @@
 import torch
-from core.utils import damped_pseudo_inverse, bounded_quad_loss, uniform_sampling
+from core.utils import damped_pseudo_inverse, bounded_quad_loss
 from models.dof2 import dynamics
+from core.sampling import uniform_sampling
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 W1, W2, W3, W4, W5, W6, W7 = 1.0, 1.0, 1.0 ,1.0, 1.0, 1.0, 1.0  # TODO: change this into parameters to total loss
 
 class customLoss:
-    def __init__(self, B_left_annihilator):
+    def __init__(self):
         self.B_left_annihilator = torch.tensor([[0, 0],[0, 1.0]]).to(device)
         self.B = torch.tensor([[1.0],[0]]).to(device)
 
@@ -313,7 +314,8 @@ class customLoss:
     ##################################
     # use sparse sample for robustness
     def sparse_sample_loss(self, model, sample_size = 100):
-        X = uniform_sampling(n_samples=100)
+        X = uniform_sampling(n_samples=100, input_dim=model.INPUT_DIM, device=device,
+                     lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
         loss, _ = self.get_PDE_Loss(model, X)
         return loss
 

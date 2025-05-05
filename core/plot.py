@@ -2,7 +2,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_loss_curve(loss_epoch, plot_title, xlabel, ylabel, filename, file_path):
+def plot_loss_curve(loss_epoch, plot_title, xlabel, ylabel, start_idx=10, filename, file_path):
     """
     Plot and save a loss curve.
     
@@ -18,7 +18,7 @@ def plot_loss_curve(loss_epoch, plot_title, xlabel, ylabel, filename, file_path)
     save_path = os.path.abspath(os.path.join(file_path, filename))
 
     num_epochs = len(loss_epoch)
-    start_index = 10 if num_epochs > 10 else 00
+    start_index = start_idx if num_epochs > start_idx else 0
 
     epochs = range(start_index + 1, num_epochs + 1)
 

@@ -8,3 +8,9 @@ max_iter_lbfgs = 100
 
 # batch size
 BATCH_SIZE = 64
+
+# seed
+SEED = 60
+
+# training size
+num_train_data = 5000
