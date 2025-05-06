@@ -17,8 +17,8 @@ def _validate_bounds(lower_bounds, upper_bounds, input_dim):
     if upper_bounds is None:
         upper_bounds = np.ones(input_dim)
 
-    assert lower_bounds.shape == (input_dim,), "lower_bounds must match input_dim"
-    assert upper_bounds.shape == (input_dim,), "upper_bounds must match input_dim"
+    assert len(lower_bounds) == input_dim, "lower_bounds must match input_dim"
+    assert len(upper_bounds) == input_dim, "upper_bounds must match input_dim"
     return lower_bounds, upper_bounds
 
 
