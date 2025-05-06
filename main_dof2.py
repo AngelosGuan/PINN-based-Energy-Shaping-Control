@@ -12,6 +12,8 @@ import os
 import argparse
 import sys
 
+########################################################################
+data_path = "/data/dof2/"
 ########################################################################  
 ## main function ##
 ########################################################################
@@ -31,7 +33,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model_name", type=str, default="newMLP", help="Path to store the output."
     )
-    
+
+	assert all(c.isalnum() or c == '_' for c in args.model_name), \
+	    "Error: model_name can only contain letters, numbers, and underscores (_)."
+
     args, _ = parser.parse_known_args()
 
     num_epochs_adam = args.num_epoch_adam
@@ -41,6 +46,7 @@ if __name__ == "__main__":
     current_dir = os.getcwd()
     STORAGE_PATH = os.path.abspath(os.path.join(current_dir, args.model_name))
     PRINT_PATH = os.path.abspath(os.path.join(STORAGE_PATH,"out.txt"))
+    DATA_PATH = os.path.abspath(os.path.join(current_dir, data_path))
 
     # make sure paths exist
     if not os.path.exists(STORAGE_PATH):
@@ -85,13 +91,28 @@ if __name__ == "__main__":
 
 	# verify on test sets
 	# sobel
+	test_set = sampling.sobol_sampling(n_samples=4096, input_dim=models.INPUT_DIM, device=device,
+                   lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+	plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="sobel_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
 	# uniform
+	test_set = sampling.uniform_sampling(n_samples=5000, input_dim=models.INPUT_DIM, device=device,
+                   lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+	plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="uniform_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
 	# LHS
+	test_set = sampling.lhs_sampling(n_samples=5000, input_dim=models.INPUT_DIM, device=device,
+                   lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+	plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="lhs_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
 	# matlab data
+	filepath = os.path.abspath(os.path.join(DATA_PATH, "x.mat"))
+	test_set = utils.load_data(filepath).to(device)
+	plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="traj10_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
+	filepath = os.path.abspath(os.path.join(DATA_PATH, "x_1step.mat"))
+	test_set = utils.load_data(filepath).to(device)
+	plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="traj1_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 	
 	# save model
 	plot.save_model_parameters(model, args.model_name, STORAGE_PATH)
