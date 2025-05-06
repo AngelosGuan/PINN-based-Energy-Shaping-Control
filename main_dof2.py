@@ -13,7 +13,7 @@ import argparse
 import sys
 
 ########################################################################
-data_path = "/data/dof2/"
+data_path = "data/dof2/"
 ########################################################################  
 ## main function ##
 ########################################################################
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     plot.plot_loss_curve(L1_epoch, plot_title="Residual Loss v. Epoch", xlabel = "epoch", ylabel = "Residual Loss", start_idx=10, filename = "ResidualLoss.png", file_path = STORAGE_PATH)
 
     # print grad norm
-    plot.plot_loss_curve(L1_epoch, plot_title="Grad Norm v. Epoch", xlabel = "epoch", ylabel = "Grad Norm", start_idx=0, filename = "Grad_Norm.png", file_path = STORAGE_PATH)
+    plot.plot_loss_curve(grad_norm_epoch, plot_title="Grad Norm v. Epoch", xlabel = "epoch", ylabel = "Grad Norm", start_idx=0, filename = "Grad_Norm.png", file_path = STORAGE_PATH)
 
     # verify on test sets
     # sobel
