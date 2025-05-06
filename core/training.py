@@ -69,20 +69,20 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
 
 ########################################################################
 # train function
-def train(model, loss_funcs, X, batch_size, num_epochs_adam, num_epoch_bfgs, lr_adam, l2_regu_adam, lr_lbfgs, max_iter_lbfgs, print_path):
+def train(model, loss_funcs, X, batch_size, num_epochs_adam, num_epochs_bfgs, lr_adam, l2_regu_adam, lr_lbfgs, max_iter_lbfgs, print_path):
 
     # use GPU when available
-    adam, scheduler = initialize_adam_optimizer(model, lr_adam, l2_regu_adam)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # setup initial weights
     weights = calculate_weights(loss_funcs, model, X, print_path)
 
     # Initialize optimizers
     # adam
-    adam, scheduler = initialize_adam_optimizer(model, lr_lbfgs, max_iter_lbfgs)
+    adam, scheduler = initialize_adam_optimizer(model, lr_adam, l2_regu_adam)
     
     # lbfgs
-    lbfgs = initialize_lbfgs_optimizer(model)
+    lbfgs = initialize_lbfgs_optimizer(model, lr_lbfgs, max_iter_lbfgs)
     def closure():
         lbfgs.zero_grad()
         loss, _ = loss_funcs.total_loss(model, X, weights)
@@ -172,7 +172,7 @@ def train(model, loss_funcs, X, batch_size, num_epochs_adam, num_epoch_bfgs, lr_
             sys.exit(1)
 
     # L-BFGS training loop
-    for ep in range(num_epoch_BFGS):
+    for ep in range(num_epochs_bfgs):
         try:
 
             # step with l-BFGS optimizer
