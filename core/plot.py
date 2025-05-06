@@ -63,10 +63,10 @@ def plot_pde_loss_and_states(loss_funcs, model, X, filename, storage_path, print
     # Second subplot: state variables (arbitrary m)
     for i in range(m):
         axs[1].plot(x, X[:, i], label=f'x{i + 1}', alpha=0.6)  # add transparency
-    axs[1].set_xlabel('data index')
-    axs[1].set_ylabel('state variable')
-    axs[1].set_title('State Variable Values vs Data Index')
-    axs[1].legend()
+        axs[1].set_xlabel('data index')
+        axs[1].set_ylabel('state variable')
+        axs[1].set_title('State Variable Values vs Data Index')
+        axs[1].legend()
 
     plt.tight_layout()
     plt.savefig(plt_title)
@@ -103,7 +103,6 @@ def save_model_parameters(model, model_name, storage_path):
 def plot_comparison_surfaces(data_list, plot_title, xlabel, ylabel, zlabel, filename, storage_path, labels=None):
     """
     Plot multiple 3D surfaces over a shared state1 vs. state2 grid.
-
     Parameters:
         data_list: list of (values, state1, state2) tuples
                    each: values[n], state1[n], state2[n]
