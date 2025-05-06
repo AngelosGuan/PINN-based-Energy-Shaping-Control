@@ -1,6 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 
 def plot_loss_curve(loss_epoch, plot_title, xlabel, ylabel, start_idx=10, filename=None, file_path=None):
     """
