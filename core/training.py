@@ -109,8 +109,8 @@ def train(model, loss_funcs, X, batch_size, num_epochs_adam, num_epochs_bfgs, lr
             L1, L2, L3, L4, L5, L6, L7 = [], [], [], [], [], [], []
 
             # using minibatch
-            for i in range(0, num_samples, BATCH_SIZE):
-                batch = X[i:i+BATCH_SIZE]
+            for i in range(0, num_samples, batch_size):
+                batch = X[i:i+batch_size]
                 train_loss_batch, losses = loss_funcs.total_loss(model, batch, weights)
                 
                 # TODO: schedule gradient descent alteratively for different loss if needed or adjust learning rate
