@@ -34,10 +34,10 @@ if __name__ == "__main__":
         "--model_name", type=str, default="newMLP", help="Path to store the output."
     )
 
-    assert all(c.isalnum() or c == '_' for c in args.model_name), \
-        "Error: model_name can only contain letters, numbers, and underscores (_)."
-
     args, _ = parser.parse_known_args()
+
+    assert all(c.isalnum() or c == '_' for c in args.model_name), \
+    "Error: model_name can only contain letters, numbers, and underscores (_)."
 
     num_epochs_adam = args.num_epoch_adam
     num_epochs_BFGS = args.num_epoch_bfgs
