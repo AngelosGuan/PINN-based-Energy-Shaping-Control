@@ -64,7 +64,7 @@ if __name__ == "__main__":
     model = models.MLP().to(device)
 
     # create training data from sampling
-    X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=models.INPUT_DIM, device=device,
+    X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device,
                  lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
 
     # call train
@@ -91,17 +91,17 @@ if __name__ == "__main__":
 
     # verify on test sets
     # sobel
-    test_set = sampling.sobol_sampling(n_samples=4096, input_dim=models.INPUT_DIM, device=device,
+    test_set = sampling.sobol_sampling(n_samples=4096, input_dim=model.INPUT_DIM, device=device,
                    lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="sobel_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
     # uniform
-    test_set = sampling.uniform_sampling(n_samples=5000, input_dim=models.INPUT_DIM, device=device,
+    test_set = sampling.uniform_sampling(n_samples=5000, input_dim=model.INPUT_DIM, device=device,
                    lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="uniform_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
     # LHS
-    test_set = sampling.lhs_sampling(n_samples=5000, input_dim=models.INPUT_DIM, device=device,
+    test_set = sampling.lhs_sampling(n_samples=5000, input_dim=model.INPUT_DIM, device=device,
                    lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="lhs_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
