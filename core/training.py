@@ -25,7 +25,9 @@ def initialize_lbfgs_optimizer(model, lr, max_iter):
 # compute weights
 def calculate_weights(loss_funcs, model, X, print_path=None):
     with torch.no_grad():
-        residual_loss, control_loss = loss_funcs.get_PDE_and_control_loss(model, X).detach().cpu()
+        residual_loss, control_loss = loss_funcs.get_PDE_and_control_loss(model, X)
+        residual_loss = residual_loss.detach().cpu()
+        control_loss = control_loss.detach().cpu()
         boundary_loss = loss_funcs.get_Boundary_Loss(model).detach().cpu()
         deviation_loss = loss_funcs.get_deviation_loss(model, X, 0.5).detach().cpu()
         eig_loss = loss_funcs.eig_range_loss(model, X, 0.5).detach().cpu()
