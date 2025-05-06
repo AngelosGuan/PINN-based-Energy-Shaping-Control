@@ -40,7 +40,7 @@ if __name__ == "__main__":
     "Error: model_name can only contain letters, numbers, and underscores (_)."
 
     num_epochs_adam = args.num_epoch_adam
-    num_epochs_BFGS = args.num_epoch_bfgs
+    num_epochs_bfgs = args.num_epoch_bfgs
 
     # get absolute storage path
     current_dir = os.getcwd()
