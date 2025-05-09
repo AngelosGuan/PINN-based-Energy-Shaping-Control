@@ -79,9 +79,15 @@ def determine_phase_masks(x, slope, lf, EPSILON, device):
 
     # if unbatched, return scalar masks
     if unbatched:
-        phase1_mask = phase1_mask.squeeze(0)
-        phase2_mask = phase2_mask.squeeze(0)
-        phase3_mask = phase3_mask.squeeze(0)
+        # make shape [1] so it multiplies with [d]
+        phase1_mask = phase1_mask.view(1)
+        phase2_mask = phase2_mask.view(1)
+        phase3_mask = phase3_mask.view(1)
+    else:
+        # make shape [n, 1] so it multiplies with [n, d]
+        phase1_mask = phase1_mask.unsqueeze(1)
+        phase2_mask = phase2_mask.unsqueeze(1)
+        phase3_mask = phase3_mask.unsqueeze(1)
 
     return phase1_mask, phase2_mask, phase3_mask
 
