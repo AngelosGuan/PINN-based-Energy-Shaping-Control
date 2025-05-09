@@ -6,6 +6,7 @@ from models.dof8.dynamics import Mp, Mf, g, l1, l2, la, lf, I1x, I2x, Ipx, slope
 # import dynamic function for contact condition, M, N
 from models.dof8.dynamics import determine_phase_masks, calculate_Mmtx, calculate_Nvect
 from configs.config_dof8 import EPSILON
+from core.utils import make_linear_norm_block
 
 
 
