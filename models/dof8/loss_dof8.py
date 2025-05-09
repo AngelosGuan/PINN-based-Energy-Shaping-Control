@@ -340,71 +340,101 @@ class customLoss:
     # TODO: add adaptive sampling
 
     ##################################
+    # def total_loss(self, model, X, weights):
+    #     residual_loss, control_loss = self.get_PDE_and_control_loss(model, X)
+    #     boundary_loss = self.get_Boundary_Loss(model)
+    #     deviation_loss = self.get_deviation_loss(model, X, 0.5)
+    #     eig_loss = self.eig_range_loss(model, X, 0.5)
+    #     sparse_loss = self.sparse_sample_loss(model, 100)
+    #     pos_def_loss = self.pos_eig_loss(model, X)
+
+    #     assert len(weights) == 7
+    #     [W1, W2, W3, W4, W5, W6, W7] = weights
+
+    #     total =  W1*residual_loss + W2* control_loss + W3*boundary_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + W7*pos_def_loss
+    #     losses = [
+    #         residual_loss.detach().cpu(),
+    #         control_loss.detach().cpu(),
+    #         boundary_loss.detach().cpu(),
+    #         deviation_loss.detach().cpu(),
+    #         eig_loss.detach().cpu(),
+    #         sparse_loss.detach().cpu(),
+    #         pos_def_loss.detach().cpu()
+    #     ]
+    #     return total, losses
+    ##################################
     def total_loss(self, model, X, weights):
-        residual_loss, control_loss = self.get_PDE_and_control_loss(model, X)
-        boundary_loss = self.get_Boundary_Loss(model)
-        deviation_loss = self.get_deviation_loss(model, X, 0.5)
-        eig_loss = self.eig_range_loss(model, X, 0.5)
-        sparse_loss = self.sparse_sample_loss(model, 100)
-        pos_def_loss = self.pos_eig_loss(model, X)
+        residual_loss = self.get_PDE_Loss(model, X)
 
-        assert len(weights) == 7
-        [W1, W2, W3, W4, W5, W6, W7] = weights
+        assert len(weights) == 1
+        [W1] = weights
 
-        total =  W1*residual_loss + W2* control_loss + W3*boundary_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + W7*pos_def_loss
+        total =  W1*residual_loss 
         losses = [
-            residual_loss.detach().cpu(),
-            control_loss.detach().cpu(),
-            boundary_loss.detach().cpu(),
-            deviation_loss.detach().cpu(),
-            eig_loss.detach().cpu(),
-            sparse_loss.detach().cpu(),
-            pos_def_loss.detach().cpu()
+            residual_loss.detach().cpu()
         ]
         return total, losses
 
 ########################################################################
 # compute weights
+# def calculate_weights(loss_funcs, model, X, print_path=None):
+#     with torch.no_grad():
+#         residual_loss, control_loss = loss_funcs.get_PDE_and_control_loss(model, X)
+#         residual_loss = residual_loss.detach().cpu()
+#         control_loss = control_loss.detach().cpu()
+#         boundary_loss = loss_funcs.get_Boundary_Loss(model).detach().cpu()
+#         deviation_loss = loss_funcs.get_deviation_loss(model, X, 0.5).detach().cpu()
+#         eig_loss = loss_funcs.eig_range_loss(model, X, 0.5).detach().cpu()
+#         sparse_loss = loss_funcs.sparse_sample_loss(model, 100).detach().cpu()
+#         pos_def_loss = loss_funcs.pos_eig_loss(model, X).detach().cpu()
+
+#         eps = 1e-10
+#         n = float(X.shape[0])
+#         weights = np.array([
+#             1.0 / (1.0 + np.log(1.0 + residual_loss + eps)),
+#             1.0 / (1.0 + np.log(1.0 + control_loss + eps)),
+#             1.0 / (1.0 + np.log(1.0 + boundary_loss + eps)),
+#             1.0 / (1.0 + np.log(1.0 + deviation_loss + eps)),
+#             1.0 / (1.0 + np.log(1.0 + eig_loss + eps)),
+#             1.0 / (1.0 + np.log(1.0 + sparse_loss + eps)),
+#             1.0 / (1.0 + np.log(1.0 + pos_def_loss + eps))
+#         ])
+#         clamped_weights = np.clip(weights, a_min=0.5, a_max=5.0)
+#         # scale boundary loss by number of samples if present
+#         clamped_weights[2] *= n
+
+#         if getattr(model, 'hard_boundary', False):
+#             # boundary loss not needed for hard boundary models
+#             clamped_weights[2] = 0.0
+#         if getattr(model, 'pos_def', False):
+#             # positive eigenvalue loss not needed for positive definite models
+#             clamped_weights[6] = 0.0
+
+#         # Optional debug printing
+#         if print_path is not None:
+#             with open(print_path, "a") as f:
+#                 print(f"W1: {clamped_weights[0]:.6f}, W2: {clamped_weights[1]:.6f}, W3: {clamped_weights[2]:.6f}, "
+#                       f"W4: {clamped_weights[3]:.6f}, W5: {clamped_weights[4]:.6f}, W6: {clamped_weights[5]:.6f}, "
+#                       f"W7: {clamped_weights[6]:.6f}", file=f)
+#                 print(f"L1: {residual_loss:.6f}, L2: {control_loss:.6f}, L3: {boundary_loss:.6f}, "
+#                       f"L4: {deviation_loss:.6f}, L5: {eig_loss:.6f}, L6: {sparse_loss:.6f}, "
+#                       f"L7: {pos_def_loss:.6f}", file=f)
+#         return clamped_weights
+
 def calculate_weights(loss_funcs, model, X, print_path=None):
     with torch.no_grad():
-        residual_loss, control_loss = loss_funcs.get_PDE_and_control_loss(model, X)
-        residual_loss = residual_loss.detach().cpu()
-        control_loss = control_loss.detach().cpu()
-        boundary_loss = loss_funcs.get_Boundary_Loss(model).detach().cpu()
-        deviation_loss = loss_funcs.get_deviation_loss(model, X, 0.5).detach().cpu()
-        eig_loss = loss_funcs.eig_range_loss(model, X, 0.5).detach().cpu()
-        sparse_loss = loss_funcs.sparse_sample_loss(model, 100).detach().cpu()
-        pos_def_loss = loss_funcs.pos_eig_loss(model, X).detach().cpu()
+        residual_loss = loss_funcs.get_PDE_Loss(model, X)
 
         eps = 1e-10
         n = float(X.shape[0])
         weights = np.array([
-            1.0 / (1.0 + np.log(1.0 + residual_loss + eps)),
-            1.0 / (1.0 + np.log(1.0 + control_loss + eps)),
-            1.0 / (1.0 + np.log(1.0 + boundary_loss + eps)),
-            1.0 / (1.0 + np.log(1.0 + deviation_loss + eps)),
-            1.0 / (1.0 + np.log(1.0 + eig_loss + eps)),
-            1.0 / (1.0 + np.log(1.0 + sparse_loss + eps)),
-            1.0 / (1.0 + np.log(1.0 + pos_def_loss + eps))
+            1.0 / (1.0 + np.log(1.0 + residual_loss + eps))
         ])
         clamped_weights = np.clip(weights, a_min=0.5, a_max=5.0)
-        # scale boundary loss by number of samples if present
-        clamped_weights[2] *= n
-
-        if getattr(model, 'hard_boundary', False):
-            # boundary loss not needed for hard boundary models
-            clamped_weights[2] = 0.0
-        if getattr(model, 'pos_def', False):
-            # positive eigenvalue loss not needed for positive definite models
-            clamped_weights[6] = 0.0
 
         # Optional debug printing
         if print_path is not None:
             with open(print_path, "a") as f:
-                print(f"W1: {clamped_weights[0]:.6f}, W2: {clamped_weights[1]:.6f}, W3: {clamped_weights[2]:.6f}, "
-                      f"W4: {clamped_weights[3]:.6f}, W5: {clamped_weights[4]:.6f}, W6: {clamped_weights[5]:.6f}, "
-                      f"W7: {clamped_weights[6]:.6f}", file=f)
-                print(f"L1: {residual_loss:.6f}, L2: {control_loss:.6f}, L3: {boundary_loss:.6f}, "
-                      f"L4: {deviation_loss:.6f}, L5: {eig_loss:.6f}, L6: {sparse_loss:.6f}, "
-                      f"L7: {pos_def_loss:.6f}", file=f)
+                print(f"W1: {clamped_weights[0]:.6f}", file=f)
+                print(f"L1: {residual_loss:.6f}", file=f)
         return clamped_weights
