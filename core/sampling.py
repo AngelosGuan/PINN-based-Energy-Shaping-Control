@@ -6,10 +6,6 @@ from scipy.stats import qmc
 ########################################################################
 # helpers
 
-def _scale_samples(samples, lower_bounds, upper_bounds):
-    """Scales unit hypercube samples to the given bounds."""
-    return qmc.scale(samples, lower_bounds, upper_bounds)
-
 def _validate_bounds(lower_bounds, upper_bounds, input_dim):
     """Ensures bounds are valid and sets defaults if needed."""
     if lower_bounds is None:
@@ -31,10 +27,33 @@ def lhs_sampling(n_samples=5000, input_dim=4, device='cpu',
     Returns: (n_samples, input_dim) torch.Tensor
     """
     lower_bounds, upper_bounds = _validate_bounds(lower_bounds, upper_bounds, input_dim)
-    sampler = qmc.LatinHypercube(d=input_dim)
+
+    lower_bounds = np.array(lower_bounds)
+    upper_bounds = np.array(upper_bounds)
+
+    # Identify active indices (where lower != upper)
+    active_indices = np.where(lower_bounds != upper_bounds)[0]
+    fixed_indices = np.where(lower_bounds == upper_bounds)[0]
+
+    active_dim = len(active_indices)
+    if active_dim == 0:
+        raise ValueError("All dimensions are fixed; no active dimensions to sample.")
+
+    sampler = qmc.LatinHypercube(d=active_dim)
     samples = sampler.random(n=n_samples)
-    scaled = _scale_samples(samples, lower_bounds, upper_bounds)
-    return torch.tensor(scaled, dtype=torch.float32, device=device, requires_grad=False)
+
+    # Scale active samples
+    scaled_active = qmc.scale(active_samples,
+                              lower_bounds[active_indices],
+                              upper_bounds[active_indices])
+    # Initialize full sample array and insert fixed values
+    full_samples = np.zeros((n_samples, input_dim))
+    full_samples[:, active_indices] = scaled_active
+
+    for idx in fixed_indices:
+        full_samples[:, idx] = lower_bounds[idx]  # or upper_bounds[idx], same value
+
+    return torch.tensor(full_samples, dtype=torch.float32, device=device, requires_grad=False)
 
 ########################################################################
 # Sobol Sequence with automatic inactive dimension handling
@@ -80,8 +99,34 @@ def sobol_sampling(n_samples=4096, input_dim=4, device='cpu',
 def uniform_sampling(n_samples=100, input_dim=4, device='cpu',
                      lower_bounds=None, upper_bounds=None):
     """
-    Uniform random sampling.
+    Uniform random sampling with handling of fixed (lower == upper) dimensions.
+    Returns: (n_samples, input_dim) torch.Tensor
     """
     lower_bounds, upper_bounds = _validate_bounds(lower_bounds, upper_bounds, input_dim)
-    samples = np.random.uniform(low=lower_bounds, high=upper_bounds, size=(n_samples, input_dim))
-    return torch.tensor(samples, dtype=torch.float32, device=device, requires_grad=False)
+
+    lower_bounds = np.array(lower_bounds)
+    upper_bounds = np.array(upper_bounds)
+
+    # Identify active indices (where lower != upper)
+    active_indices = np.where(lower_bounds != upper_bounds)[0]
+    fixed_indices = np.where(lower_bounds == upper_bounds)[0]
+
+    active_dim = len(active_indices)
+    if active_dim == 0:
+        raise ValueError("All dimensions are fixed; no active dimensions to sample.")
+
+    # Sample only active dimensions
+    active_samples = np.random.uniform(
+        low=lower_bounds[active_indices],
+        high=upper_bounds[active_indices],
+        size=(n_samples, active_dim)
+    )
+
+    # Initialize full sample array and insert fixed values
+    full_samples = np.zeros((n_samples, input_dim))
+    full_samples[:, active_indices] = active_samples
+
+    for idx in fixed_indices:
+        full_samples[:, idx] = lower_bounds[idx]  # or upper_bounds[idx], same value
+
+    return torch.tensor(full_samples, dtype=torch.float32, device=device, requires_grad=False)
