@@ -72,6 +72,7 @@ if __name__ == "__main__":
     [L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch, L7_epoch]) = training.train(
         model,
         loss_funcs,
+        loss.calculate_weights,
         X,
         config.BATCH_SIZE,
         num_epochs_adam,

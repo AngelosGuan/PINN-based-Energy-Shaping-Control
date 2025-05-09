@@ -1,4 +1,3 @@
-import  torch
 constants = {
     "m": 5.,
     "m_H": 10.,

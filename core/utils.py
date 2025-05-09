@@ -5,17 +5,9 @@ import random
 from torch.optim.lr_scheduler import _LRScheduler
 import numpy as np
 
+
 ########################################################################
-# compute gradient norm
-def compute_gradient_norm(model):
-    total_norm = 0
-    for param in model.parameters():
-        if param.grad is not None:
-            param_norm = param.grad.detach().data.norm(2)
-            total_norm += param_norm.item() ** 2
-    return total_norm ** 0.5
-########################################################################
-# computation
+# === Math utilities ===
 ##############################
 # pseudo inverse with damping for stability
 # allow batch
@@ -56,7 +48,59 @@ def bounded_quad_loss(out, bound):
         return torch.mean(excess**2, dim=1)
     else:
         raise ValueError("Input tensor 'out' must be 1D or 2D")
+########################################################################
+# fix random seed for reproductivity      
+def divide_samples_around_pivot(num_samples, low, high, pivot):
+    """
+    Divides `num_samples` into two integers (num_region1, num_region2)
+    such that:
+    
+      num_region1 + num_region2 == num_samples
+      (num_region1 / num_region2) ≈ (pivot - low) / (high - pivot)
+      
+    This ensures the number of samples allocated to each side of the `pivot`
+    is proportional to the size of the two sub-ranges:
+      - Region 1: [low, pivot)
+      - Region 2: (pivot, high]
+      
+    Parameters:
+        num_samples (int): total number of samples to divide.
+        low (float): lower bound of the total range.
+        high (float): upper bound of the total range.
+        pivot (float): dividing point between the two regions.
+    
+    Returns:
+        num_region1 (int): number of samples in [low, pivot).
+        num_region2 (int): number of samples in (pivot, high].
+    """
+    range1 = pivot - low
+    range2 = high - pivot
+    total_range = range1 + range2
 
+    # Calculate proportional sample counts
+    num_region1 = round(num_samples * (range1 / total_range))
+    num_region2 = num_samples - num_region1  # ensure exact sum
+
+    return num_region1, num_region2
+
+
+########################################################################
+# === File utilities ===
+######################################################
+# loading .mat data
+def load_data(data_path):
+    '''
+    load data
+    input: path to input data
+    output: tensor of all datapoints:(number_of_data, input state dimension)
+    '''
+    mat = scipy.io.loadmat(data_path)
+    X = torch.tensor(mat['xs'], requires_grad=False).float()
+    return X
+
+
+########################################################################
+# === Machine Learning utilities ===
 ########################################################################
 # fix random seed for reproductivity
 def set_seed(seed):
@@ -68,16 +112,47 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
+
+########################################################################
+# compute gradient norm
+def compute_gradient_norm(model):
+    total_norm = 0
+    for param in model.parameters():
+        if param.grad is not None:
+            param_norm = param.grad.detach().data.norm(2)
+            total_norm += param_norm.item() ** 2
+    return total_norm ** 0.5
+
 ######################################################
-'''
-load data
-input: path to input data
-output: tensor of all datapoints:(number_of_data, input state dimension)
-'''
-def load_data(data_path):
-    mat = scipy.io.loadmat(data_path)
-    X = torch.tensor(mat['xs'], requires_grad=False).float()
-    return X
+# for MLP models
+def make_linear_norm_block(input_dim, hidden_dim, num_repeats, output_dim):
+    """
+    Creates a sequential neural network block consisting of repeated 
+    Linear -> LayerNorm -> Tanh layers.
+
+    Parameters:
+        input_dim (int): Size of the input features.
+        hidden_dim (int): Size of the hidden layer units.
+        num_repeats (int): Number of repeated hidden layers.
+        output_dim (int): Size of the final output layer.
+
+    Returns:
+        torch.nn.Sequential: A PyTorch Sequential module containing the full block.
+    """
+    layers = []
+    layers.append(torch.nn.Linear(input_dim, hidden_dim))
+    layers.append(torch.nn.LayerNorm(hidden_dim))
+    layers.append(torch.nn.Tanh())
+
+    for _ in range(num_repeats - 1):
+        layers.append(torch.nn.Linear(hidden_dim, hidden_dim))
+        layers.append(torch.nn.LayerNorm(hidden_dim))
+        layers.append(torch.nn.Tanh())
+
+    layers.append(torch.nn.Linear(hidden_dim, output_dim))
+    layers.append(torch.nn.Tanh())
+
+    return torch.nn.Sequential(*layers)
 ######################################################
 '''
 Cosine Warmup for training

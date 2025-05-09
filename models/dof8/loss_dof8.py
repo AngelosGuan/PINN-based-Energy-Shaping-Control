@@ -1,54 +1,85 @@
 import torch
 from core.utils import damped_pseudo_inverse, bounded_quad_loss
-from models.dof2 import dynamics
+from models.dof8.dynamics import slope, lf, determine_phase_masks, calculate_Cqdot, CONTROL_BOUND
+from models.dof8.helpers import sampling_with_contact_condition
+from configs.config_dof8 import EPSILON
 from core.sampling import uniform_sampling
+
+# might need dataloader here for OOM issue in sparse sampling
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class customLoss:
     def __init__(self):
-        self.B_left_annihilator = torch.tensor([[0, 0],[0, 1.0]]).to(device)
-        self.B = torch.tensor([[1.0],[0]]).to(device)
+        self.B = torch.tensor([[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[1,0,0,0,0],[0,1,0,0,0],[0,0,1,0,0],[0,0,0,1,0],[0,0,0,0,1]], dtype=torch.float32, device=device)
 
     ##################################
     
     def get_PDE_Loss_trajectory(self, model, X):
         # helpers
 
-        def func_M1(x):
+        def calculate_B_annihilator(x):
             M = model.calculate_M(x)
-            q_dot = torch.stack([x[2], x[3]]).view(-1,1)
-            return M @ q_dot
+            I = torch.eye(3,device=device)
+            Y = - M[0:3, 3:8] @ torch.inverse(M[3:8, 3:8])
+            B = torch.cat((I, Y), dim=1)
+            return B
 
-        def func_M2(x):
-            M = model.calculate_M(x)
-            q_dot = torch.stack([x[2], x[3]]).view(-1,1)
-            return torch.transpose(q_dot,0,1) @ M @ q_dot
+        def calculate_AWA(x, invM):
+            phase1_mask, phase2_mask, phase3_mask = determine_phase_masks(x=x, slope=slope, lf=lf, EPSILON=EPSILON, device=device)
+            A1 = torch.tensor([[1, 0, 0, 0, 0, 0, 0, 0],[0, 1, 0, 0, 0, 0, 0, 0]], dtype=x.dtype, device=device)
+            A1_T = torch.transpose(A1, 0, 1)
+            A2 = torch.tensor([[1, 0, 0, 0, 0, 0, 0, 0],[0, 1, 0, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0, 0]], dtype=x.dtype, device=device)
+            A2_T = torch.transpose(A2, 0, 1)
+            A3 = torch.cat([
+                torch.tensor([[1, 0], [0, 1]], dtype=x.dtype, device=device),
+                torch.stack([lf * torch.sin(x[2]), -lf * torch.cos(x[2])]).view(2, 1),
+                torch.zeros((2, 5), device=device)
+            ], dim=1)
+            A3_T = torch.transpose(A3, 0, 1)
 
-        def func_Mhat1(x):
-            M_hat = model.calculate_M_hat(x)
-            q_dot = torch.stack([x[2], x[3]]).view(-1,1)
-            return M_hat @ q_dot
+            temp = (
+                phase1_mask * A1_T @ torch.inverse(A1 @ invM @ A1_T) @ A1 + 
+                phase2_mask * A2_T @ torch.inverse(A2 @ invM @ A2_T) @ A2 + 
+                phase3_mask * A3_T @ torch.inverse(A3 @ invM @ A3_T) @ A3
+                )
+            return temp
 
-        def func_Mhat2(x):
-            M_hat = model.calculate_M_hat(x)
-            q_dot = torch.stack([x[2], x[3]]).view(-1,1)
-            return torch.transpose(q_dot,0,1) @ M_hat @ q_dot
+        def common_factor(x, invM):
+            # I - A^T W A M^-1
+            temp = calculate_AWA(x, invM)
+            return torch.eye(8,device=device) - temp @ invM 
 
-        # x:(4,1) y(3,1)
+        def calculate_lambda(x, invM, mat):
+            # except for Mlamb = M
+            com = common_factor(x, invM)
+            return com @ mat
+
         def matching_condition_vmap(x):
-            q_dot = torch.stack([x[2], x[3]]).view(-1,1)
-            M = model.calculate_M(x)
-            M_hat = model.calculate_M_hat(x)
+            q_dot = x[8:].view(-1,1)
+            
+            Mmtx = model.calculate_M(x)
+            Mmtx_hat = model.calculate_M_hat(x)
+            Mmtx_inv = damped_pseudo_inverse(Mmtx)
+            Mmtx_hat_inv = damped_pseudo_inverse(Mmtx_hat)
 
-            M_inv = damped_pseudo_inverse(M)
-            M_hat_inv =  damped_pseudo_inverse(M_hat)
+            B_annihilator = calculate_B_annihilator(x)
 
-            jacobianM1 = torch.func.jacrev(lambda x: func_M1(x))(x).reshape(2,4)[:,:2]
-            jacobianM2 = torch.func.jacrev(lambda x: func_M2(x))(x).reshape(1,4)[:,:2]
-            jacobianMhat1 = torch.func.jacrev(lambda x: func_Mhat1(x))(x).reshape(2,4)[:,:2]
-            jacobianMhat2 = torch.func.jacrev(lambda x: func_Mhat2(x))(x).reshape(1,4)[:,:2]
-            matching_tensor = (self.B_left_annihilator @ M) @ (M_inv @ (jacobianM1 @ q_dot - 0.5 * torch.transpose(jacobianM2,0,1)) - M_hat_inv @ (jacobianMhat1 @ q_dot - 0.5 * torch.transpose(jacobianMhat2,0,1)))
+            Cqdot = calculate_Cqdot(model.calculate_M, x)
+            Chatqdot = calculate_Cqdot(model.calculate_M_hat, x)
+
+            Cqdot = calculate_lambda(x, Mmtx_inv, Cqdot)
+            Chatqdot = calculate_lambda(x, Mmtx_hat_inv, Chatqdot)
+
+            Nvect = model.calculate_N(x)
+            Nvect_hat = Nvect
+
+            Nlamb = calculate_lambda(x, Mmtx_inv, Nvect)
+            Nlamb_hat = calculate_lambda(x, Mmtx_hat_inv, Nvect_hat)
+
+            hat = Chatqdot + Nlamb_hat
+            diff = Cqdot + Nlamb - Mmtx @ Mmtx_hat_inv @ hat
+            matching_tensor = B_annihilator @ diff
             return 0.5 * torch.linalg.vector_norm(matching_tensor, ord=2)
 
         # use torch.vmap to vectorize the transform function
@@ -56,6 +87,7 @@ class customLoss:
 
         # apply the vectorized transform function on data
         L1s = vmap_pde_loss_func(X)
+
         return L1s
 
 
@@ -69,12 +101,12 @@ class customLoss:
 
     ##################################
     # Boundary Loss. 
+    # KE shaping only
     # A single Loss for entire model, do not require data point. 
     def get_Boundary_Loss(self, model):
-        x0 = torch.tensor([0., 0., 0., 0.]).to(device)
+        x0 = torch.zeros(model.INPUT_DIM, dtype=torch.float32, device=device)
         y0_pred = model.calculate_M_hat(x0)
-        y0_true = torch.stack([torch.stack([model.C_ma_tensor, model.C_mb_tensor]),
-                torch.stack([model.C_mb_tensor, model.C_mc_tensor])])
+        y0_true = model.calculate_M(x0)
         out = torch.nn.functional.mse_loss(y0_pred, y0_true)
         return out
 
@@ -82,54 +114,74 @@ class customLoss:
     # compute PDE Loss with Control Law trajectory to avoid repetitive calculation 
     def get_PDE_and_control_trajectory(self, model, X):
 
-        def func_M1(x):
+        def calculate_B_annihilator(x):
             M = model.calculate_M(x)
-            q_dot = torch.stack([x[2], x[3]]).view(-1,1)
-            return M @ q_dot
+            I = torch.eye(3,device=device)
+            Y = - M[0:3, 3:8] @ torch.inverse(M[3:8, 3:8])
+            B = torch.cat((I, Y), dim=1)
+            return B
 
-        def func_M2(x):
-            M = model.calculate_M(x)
-            q_dot = torch.stack([x[2], x[3]]).view(-1,1)
-            return torch.transpose(q_dot,0,1) @ M @ q_dot
+        def calculate_AWA(x, invM):
+            phase1_mask, phase2_mask, phase3_mask = determine_phase_masks(x=x, slope=slope, lf=lf, EPSILON=EPSILON, device=device)
+            A1 = torch.tensor([[1, 0, 0, 0, 0, 0, 0, 0],[0, 1, 0, 0, 0, 0, 0, 0]], dtype=x.dtype, device=device)
+            A1_T = torch.transpose(A1, 0, 1)
+            A2 = torch.tensor([[1, 0, 0, 0, 0, 0, 0, 0],[0, 1, 0, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0, 0]], dtype=x.dtype, device=device)
+            A2_T = torch.transpose(A2, 0, 1)
+            A3 = torch.cat([
+                torch.tensor([[1, 0], [0, 1]], dtype=x.dtype, device=device),
+                torch.stack([lf * torch.sin(x[2]), -lf * torch.cos(x[2])]).view(2, 1),
+                torch.zeros((2, 5), device=device)
+            ], dim=1)
+            A3_T = torch.transpose(A3, 0, 1)
 
-        def func_Mhat1(x):
-            M_hat = model.calculate_M_hat(x)
-            q_dot = torch.stack([x[2], x[3]]).view(-1,1)
-            return M_hat @ q_dot
+            temp = (
+                phase1_mask * A1_T @ torch.inverse(A1 @ invM @ A1_T) @ A1 + 
+                phase2_mask * A2_T @ torch.inverse(A2 @ invM @ A2_T) @ A2 + 
+                phase3_mask * A3_T @ torch.inverse(A3 @ invM @ A3_T) @ A3
+                )
+            return temp
 
-        def func_Mhat2(x):
-            M_hat = model.calculate_M_hat(x)
-            q_dot = torch.stack([x[2], x[3]]).view(-1,1)
-            return torch.transpose(q_dot,0,1) @ M_hat @ q_dot
+        def common_factor(x, invM):
+            # I - A^T W A M^-1
+            temp = calculate_AWA(x, invM)
+            return torch.eye(8,device=device) - temp @ invM 
 
-        # x:(4,1) y(3,1)
+        def calculate_lambda(x, invM, mat):
+            # except for Mlamb = M
+            com = common_factor(x, invM)
+            return com @ mat
+
         def matching_condition_vmap(x):
-            q = torch.stack([x[0],x[1]]).view(-1,1)
-            q_dot = torch.stack([x[2], x[3]]).view(-1,1)
-
-            M = model.calculate_M(x)
-            M_hat = model.calculate_M_hat(x)
-
-            # pseudo inverse
-            #M_hat_inv = torch.linalg.pinv(M_hat)
-
-            # regularized pseudo inverse
-            M_inv = damped_pseudo_inverse(M)
-            M_hat_inv =  damped_pseudo_inverse(M_hat)
-
-            jacobianM1 = torch.func.jacrev(lambda x: func_M1(x))(x).reshape(2,4)[:,:2]
-            jacobianM2 = torch.func.jacrev(lambda x: func_M2(x))(x).reshape(1,4)[:,:2]
-            jacobianMhat1 = torch.func.jacrev(lambda x: func_Mhat1(x))(x).reshape(2,4)[:,:2]
-            jacobianMhat2 = torch.func.jacrev(lambda x: func_Mhat2(x))(x).reshape(1,4)[:,:2]
-
-            common_factor = (M_inv @ (jacobianM1 @ q_dot - 0.5 * torch.transpose(jacobianM2,0,1)) - M_hat_inv @ (jacobianMhat1 @ q_dot - 0.5 * torch.transpose(jacobianMhat2,0,1)))
+            q_dot = x[8:].view(-1,1)
             
-            matching_tensor = (self.B_left_annihilator @ M) @ common_factor
+            Mmtx = model.calculate_M(x)
+            Mmtx_hat = model.calculate_M_hat(x)
+            Mmtx_inv = damped_pseudo_inverse(Mmtx)
+            Mmtx_hat_inv = damped_pseudo_inverse(Mmtx_hat)
 
-            B_T = torch.transpose(self.B,0,1)
-            psuedo_inv_B = torch.inverse(B_T @ self.B) @ B_T
-            control_tensor = (psuedo_inv_B @ M) @ common_factor
-            
+            B_annihilator = calculate_B_annihilator(x)
+
+            Cqdot = calculate_Cqdot(model.calculate_M, x)
+            Chatqdot = calculate_Cqdot(model.calculate_M_hat, x)
+
+            Cqdot = calculate_lambda(x, Mmtx_inv, Cqdot)
+            Chatqdot = calculate_lambda(x, Mmtx_hat_inv, Chatqdot)
+
+            Nvect = model.calculate_N(x)
+            Nvect_hat = Nvect
+
+            Nlamb = calculate_lambda(x, Mmtx_inv, Nvect)
+            Nlamb_hat = calculate_lambda(x, Mmtx_hat_inv, Nvect_hat)
+
+            hat = Chatqdot + Nlamb_hat
+            diff = Cqdot + Nlamb - Mmtx @ Mmtx_hat_inv @ hat
+            matching_tensor = B_annihilator @ diff
+
+            B_lamb = calculate_lambda(x, Mmtx_inv, self.B)
+            B_T = torch.transpose(B_lamb,0,1)
+            psuedo_inv_B = torch.inverse(B_T @ B_lamb) @ B_T
+            control_tensor = psuedo_inv_B @ diff
+
             return 0.5 * torch.linalg.vector_norm(matching_tensor, ord=2), control_tensor[0][0]
 
         # use torch.vmap to vectorize the transform function
@@ -138,7 +190,6 @@ class customLoss:
         # apply the vectorized transform function on data
         L1s, us = vmap_pde_loss_func(X)
 
-        # get all residual errors over given input dataset
         return L1s, us
 
     ##################################
@@ -148,77 +199,45 @@ class customLoss:
     def get_PDE_and_control_loss(self, model, X):
         L1s, us = self.get_PDE_and_control_trajectory(model, X)
         L1_loss = L1s.mean()
-        control_loss = bounded_quad_loss(us, dynamics.constants["CONTROL_BOUND"])
+        control_loss = bounded_quad_loss(us, CONTROL_BOUND)
         return L1_loss, control_loss
-
-    ##################################
-    # condition loss (condition 1 mc_constant is trivial(does not need extra regulation) only adding condition2)
-    # (mean across all data points: scalar)
-    def get_condition_loss(self, model, X):
-        def condition2_vmap(x):
-            theta1 = x[0]
-            theta2 = x[1]
-
-            def get_ma_hat(x):
-                y = model.calculate_M_hat(x)
-                return y[0][0]
-
-            def get_mb_hat(x):
-                y = model.calculate_M_hat(x)
-                return y[0][1]
-
-            dma_hat_dtheata2 = torch.func.grad(lambda x: get_ma_hat(x))(x).reshape(1,4)[:,1]
-            dmb_hat_dtheta1 = torch.func.grad(lambda x: get_mb_hat(x))(x).reshape(1,4)[:,0]
-            part3 = 2*m*l*b*torch.sin(theta1-theta2)
-
-            return dma_hat_dtheata2 - 2*dmb_hat_dtheta1 + part3
-
-        # use torch.vmap to vectorize the transform function
-        vmap_conditon2 = torch.vmap(condition2_vmap)
-
-        # apply the vectorized transform function on data
-        condtion2_error = vmap_conditon2(X)
-
-        out = torch.pow(condtion2_error, 2)
-        L3_mean = out.mean()
-        # return avg loss, normalized avg loss
-        return L3_mean, L3_mean/(torch.max(out) + 1e-8)
 
     ##################################
     # Mdot-2C constraint loss (mean across all data points: scalar)
     def get_dynamics_constraint_loss(self, model, X):
-        def func_Mhat(x):
-            return model.calculate_M_hat(x)
-
-        def get_C(dMdq, qdot):
-            C = torch.stack((qdot, qdot), dim=1).reshape(2,2)
-
-            for k in range(2):
-                for j in range(2):
-                    C[k,j] = 0
-                    for i in range(2):
-                        C[k,j] += 0.5 * (dMdq[k,j,i] + dMdq[k,i,j] - dMdq[i,j,k])*qdot[i]
+        def calculate_Cmtx_hat(x):
+            dMdq = torch.func.jacrev(lambda x: model.calculate_M_hat(x))(x).reshape(8,8,16)[:,:,:8]
+            qdot = x[8:].view(-1,1)
+            C = torch.stack([qdot]*8, dim=1).reshape(8,8)
+            # Loop over k and j for C[k, j]
+            for k in range(8):
+                for j in range(8):
+                    # Compute the component C[k, j]
+                    for i in range(8):
+                        C[k, j] += 0.5 * (dMdq[k, j, i] + dMdq[k, i, j] - dMdq[i, j, k]) * qdot[i,0]
+            
             return C
 
-        # transpose(Mhatdot-2C)+(Mhatdot-2C)
+        # transpose(Mhatdot-2Chat)+(Mhatdot-2Chat)
         def skew_symmetric_vmap(x):
-            dMdq = torch.func.jacrev(lambda x: func_Mhat(x))(x).reshape(2,2,4)[:,:,:2]
-            qdot = torch.stack([x[2], x[3]]).view(-1,1)
+            dMdq = torch.func.jacrev(lambda x: model.calculate_M_hat(x))(x).reshape(8,8,16)[:,:,:8]
+            qdot = x[8:].view(-1,1)
             Mhatdot = dMdq @ qdot
-            Mhatdot = Mhatdot.reshape(2,2)
-            C = get_C(dMdq, qdot)
-            mat = Mhatdot - 2*C
+            Mhatdot = Mhatdot.reshape(8,8)
+            Chat = calculate_Cmtx_hat(x)
+            mat = Mhatdot - 2*Chat
             return torch.linalg.matrix_norm(torch.transpose(mat, 0, 1) + mat)
 
 
         # use torch.vmap to vectorize the transform function
         vmap_css = torch.vmap(skew_symmetric_vmap)
 
-        # apply the vectorized transform function on data
         out = vmap_css(X)
+        
         L4_mean = out.mean()
+        norm_L4mean = L4_mean/(torch.max(out) + 1e-8)
         # return avg loss, normalized avg loss
-        return L4_mean, L4_mean/(torch.max(out) + 1e-8)
+        return L4_mean, norm_L4mean
 
     ##################################
     def get_deviation_loss_trajectory(self, model, X):
@@ -311,9 +330,8 @@ class customLoss:
 
     ##################################
     # use sparse sample for robustness
-    def sparse_sample_loss(self, model, sample_size = 100):
-        X = uniform_sampling(n_samples=100, input_dim=model.INPUT_DIM, device=device,
-                     lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    def sparse_sample_loss(self, model, sample_size = 9):
+        X = sampling_with_contact_condition(num_samples=sample_size, device=device, sampling_func=uniform_sampling)
         loss, _ = self.get_PDE_Loss(model, X)
         return loss
 
@@ -343,7 +361,6 @@ class customLoss:
             pos_def_loss.detach().cpu()
         ]
         return total, losses
-
 
 ########################################################################
 # compute weights
