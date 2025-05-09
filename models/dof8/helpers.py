@@ -23,7 +23,7 @@ def sampling_with_contact_condition(num_samples, device, sampling_func):
     part1_lower = LOWER_BOUNDS[2:].copy()
     part1_upper = UPPER_BOUNDS[2:].copy()
     part1_upper[0] = slope - EPSILON
-    cond1_part1 = sampling_func(n_samples=n_part1, input_dim=6, device=device,
+    cond1_part1 = sampling_func(n_samples=n_part1, input_dim=14, device=device,
                  lower_bounds=part1_lower, upper_bounds=part1_upper)
     # add x0 = 0, x1 = 0 to all cond1 result
     zeros = torch.zeros(n_part1, 2, device=device, dtype=cond1_part1.dtype)
@@ -33,7 +33,7 @@ def sampling_with_contact_condition(num_samples, device, sampling_func):
     part2_lower = LOWER_BOUNDS[2:].copy()
     part2_upper = UPPER_BOUNDS[2:].copy()
     part2_lower[0] = slope + EPSILON
-    cond1_part2 = sampling_func(n_samples=n_part2, input_dim=6, device=device,
+    cond1_part2 = sampling_func(n_samples=n_part2, input_dim=14, device=device,
              lower_bounds=part2_lower, upper_bounds=part2_upper)
     # add x0 = 0, x1 = 0 to all cond1 result
     zeros = torch.zeros(n_part2, 2, device=device, dtype=cond1_part2.dtype)
@@ -44,7 +44,7 @@ def sampling_with_contact_condition(num_samples, device, sampling_func):
     # condition2: x0 = 0, x1 = 0, x2 = slope
     cond2_lower = LOWER_BOUNDS[3:].copy()
     cond2_upper = UPPER_BOUNDS[3:].copy()
-    cond2 = sampling_func(n_samples=n_cond2, input_dim=5, device=device,
+    cond2 = sampling_func(n_samples=n_cond2, input_dim=13, device=device,
              lower_bounds=cond2_lower, upper_bounds=cond2_upper)
     # add x0 = 0, x1 = 0, x2 = slope to all cond2 result
     head = torch.tensor([0.0, 0.0, slope], device=device, dtype=cond2.dtype).expand(n_cond2, 3)
@@ -56,7 +56,7 @@ def sampling_with_contact_condition(num_samples, device, sampling_func):
     # condition3: x0 = lf*cos(x2), x1 = lf*sin(x2)
     cond3_lower = LOWER_BOUNDS[2:].copy()
     cond3_upper = UPPER_BOUNDS[2:].copy()
-    cond3 = sampling_func(n_samples=n_cond3, input_dim=6, device=device,
+    cond3 = sampling_func(n_samples=n_cond3, input_dim=14, device=device,
              lower_bounds=cond3_lower, upper_bounds=cond3_upper)
     # add x0 = lf*cos(x2), x1 = lf*sin(x2) to all cond3 result
     x0 = lf*torch.cos(cond3[:,0]).unsqueeze(1)   # shape [n, 1]
