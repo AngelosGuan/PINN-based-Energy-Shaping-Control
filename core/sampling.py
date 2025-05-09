@@ -40,7 +40,7 @@ def lhs_sampling(n_samples=5000, input_dim=4, device='cpu',
         raise ValueError("All dimensions are fixed; no active dimensions to sample.")
 
     sampler = qmc.LatinHypercube(d=active_dim)
-    samples = sampler.random(n=n_samples)
+    active_samples = sampler.random(n=n_samples)
 
     # Scale active samples
     scaled_active = qmc.scale(active_samples,
