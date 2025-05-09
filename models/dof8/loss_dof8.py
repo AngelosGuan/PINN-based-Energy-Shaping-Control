@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from core.utils import damped_pseudo_inverse, bounded_quad_loss
 from models.dof8.dynamics import slope, lf, determine_phase_masks, calculate_Cqdot, CONTROL_BOUND
 from models.dof8.helpers import sampling_with_contact_condition
