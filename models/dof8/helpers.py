@@ -64,7 +64,7 @@ def sampling_with_contact_condition(num_samples, device, sampling_func):
     cond3 = torch.cat([x0,x1,cond3], dim=1) # final shape [n, 8]
 
     # add all samples together to create num_samples length sample
-    assert all(x.shape[1] == 8 for x in [cond1_part1, cond1_part2, cond2, cond3])
+    assert all(x.shape[1] == 16 for x in [cond1_part1, cond1_part2, cond2, cond3])
     final_result = torch.cat([cond1_part1, cond1_part2, cond2, cond3], dim=0)
 
     # shuffle, comment out if using dataloader
