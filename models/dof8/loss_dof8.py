@@ -423,7 +423,7 @@ class customLoss:
 
 def calculate_weights(loss_funcs, model, X, print_path=None):
     with torch.no_grad():
-        residual_loss = loss_funcs.get_PDE_Loss(model, X)
+        residual_loss, _ = loss_funcs.get_PDE_Loss(model, X)
 
         eps = 1e-10
         n = float(X.shape[0])
