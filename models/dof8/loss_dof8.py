@@ -428,9 +428,9 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
 
         eps = 1e-10
         n = float(X.shape[0])
-        weights = np.array([
+        weights = torch.tensor([
             1.0 / (1.0 + np.log(1.0 + residual_loss + eps))
-        ])
+        ],dtype=torch.float32, device=device)
         clamped_weights = np.clip(weights, a_min=0.5, a_max=5.0)
 
         # Optional debug printing
