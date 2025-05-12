@@ -429,13 +429,14 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
         eps = 1e-10
         n = float(X.shape[0])
         weights = torch.tensor([
-            1.0 / (1.0 + np.log(1.0 + residual_loss + eps))
-        ],dtype=torch.float32, device=device)
-        clamped_weights = np.clip(weights, a_min=0.5, a_max=5.0)
+            1.0 / (1.0 + torch.log(1.0 + residual_loss + eps))
+        ],dtype=torch.float32)
+        clamped_weights = torch.clamp(weights, min=0.5, max=5.0).to(device)
+
 
         # Optional debug printing
         if print_path is not None:
             with open(print_path, "a") as f:
-                print(f"W1: {clamped_weights[0]:.6f}", file=f)
-                print(f"L1: {residual_loss:.6f}", file=f)
+                print(f"W1: {clamped_weights[0].item():.6f}", file=f)
+                print(f"L1: {residual_loss.item():.6f}", file=f)
         return clamped_weights
