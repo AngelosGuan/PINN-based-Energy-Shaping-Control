@@ -118,6 +118,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
         except Exception as e:
             with open(print_path, "a") as f:
                 print(f"Error at epoch {ep+1}: {e}", file=f)
+                print(traceback.format_exc(), file=f)
             sys.exit(1)
 
     # L-BFGS training loop
@@ -173,5 +174,6 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
         except Exception as e:
             with open(PRINT_PATH, "a") as f:
                 print(f"Error at epoch {ep+num_epochs_adam+1}: {e}", file=f)
+                print(traceback.format_exc(), file=f)
             sys.exit(1)
     return train_loss_epoch, grad_norm_epoch, losses_epoch

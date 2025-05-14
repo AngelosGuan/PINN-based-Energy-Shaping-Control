@@ -422,21 +422,40 @@ class customLoss:
 #         return clamped_weights
 
 def calculate_weights(loss_funcs, model, X, print_path=None):
+    device = X.device
     with torch.no_grad():
         residual_loss, _ = loss_funcs.get_PDE_Loss(model, X)
         residual_loss = residual_loss.detach().cpu()
 
         eps = 1e-10
-        n = float(X.shape[0])
-        weights = torch.tensor([
-            1.0 / (1.0 + torch.log(1.0 + residual_loss + eps))
-        ],dtype=torch.float32)
-        clamped_weights = torch.clamp(weights, min=0.5, max=5.0).to(device)
-
+        weight_val = 1.0 / (1.0 + torch.log(1.0 + residual_loss + eps))
+        clamped = torch.clamp(weight_val, min=0.5, max=5.0).to(device)
 
         # Optional debug printing
         if print_path is not None:
             with open(print_path, "a") as f:
-                print(f"W1: {clamped_weights[0].item():.6f}", file=f)
+                print(f"W1: {clamped.item():.6f}", file=f)
                 print(f"L1: {residual_loss.item():.6f}", file=f)
-        return clamped_weights
+
+        return [clamped]  # return as list
+
+
+# def calculate_weights(loss_funcs, model, X, print_path=None):
+#     with torch.no_grad():
+#         residual_loss, _ = loss_funcs.get_PDE_Loss(model, X)
+#         residual_loss = residual_loss.detach().cpu()
+
+#         eps = 1e-10
+#         n = float(X.shape[0])
+#         weights = torch.tensor([
+#             1.0 / (1.0 + torch.log(1.0 + residual_loss + eps))
+#         ],dtype=torch.float32)
+#         clamped_weights = torch.clamp(weights, min=0.5, max=5.0).to(device)
+
+
+#         # Optional debug printing
+#         if print_path is not None:
+#             with open(print_path, "a") as f:
+#                 print(f"W1: {clamped_weights[0].item():.6f}", file=f)
+#                 print(f"L1: {residual_loss.item():.6f}", file=f)
+#         return clamped_weights
