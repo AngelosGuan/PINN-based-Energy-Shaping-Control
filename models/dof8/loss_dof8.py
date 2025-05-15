@@ -429,12 +429,12 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
 
         eps = 1e-10
         weight_val = 1.0 / (1.0 + torch.log(1.0 + residual_loss + eps))
-        clamped = torch.clamp(weight_val, min=0.5, max=5.0).to(device)
+        clamped = torch.clamp(weight_val, min=0.5, max=5.0).item()
 
         # Optional debug printing
         if print_path is not None:
             with open(print_path, "a") as f:
-                print(f"W1: {clamped.item():.6f}", file=f)
+                print(f"W1: {clamped:.6f}", file=f)
                 print(f"L1: {residual_loss.item():.6f}", file=f)
 
         return [clamped]  # return as list
