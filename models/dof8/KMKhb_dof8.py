@@ -24,7 +24,7 @@ class MLP(nn.Module):
 
         self.INPUT_DIM = 16
         self.OUTPUT_DIM = 8
-        self.HIDDEN_WIDTH = 8196
+        self.HIDDEN_WIDTH = 1024
         self.hard_boundary = False
         self.pos_def = True  
 

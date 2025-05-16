@@ -49,6 +49,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
         lbfgs.zero_grad()
         loss, _ = loss_funcs.total_loss(model, X, weights)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=100.0)
         return loss
 
 
@@ -80,6 +81,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 # backward prop
                 adam.zero_grad()
                 train_loss_batch.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=100.0)
                 adam.step()
 
                 train_loss.append(train_loss_batch.detach().cpu())
