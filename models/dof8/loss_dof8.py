@@ -364,7 +364,7 @@ class customLoss:
     #     return total, losses
     ##################################
     def total_loss(self, model, X, weights):
-        residual_loss = self.get_PDE_Loss(model, X)
+        residual_loss, _ = self.get_PDE_Loss(model, X)
 
         assert len(weights) == 1
         [W1] = weights
