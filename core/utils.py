@@ -123,7 +123,56 @@ def compute_gradient_norm(model):
             total_norm += param_norm.item() ** 2
     return total_norm ** 0.5
 
+
+
 ######################################################
+# residual block
+# for MLP models
+class ResidualLinearNormBlock(torch.nn.Module):
+    def __init__(self, input_dim, hidden_dim, num_repeats, output_dim, residual_interval=2):
+        super().__init__()
+        self.num_repeats = num_repeats
+        self.residual_interval = residual_interval
+
+        self.input_layer = torch.nn.Sequential(
+            torch.nn.Linear(input_dim, hidden_dim),
+            torch.nn.LayerNorm(hidden_dim),
+            torch.nn.Tanh()
+        )
+
+        self.hidden_layers = torch.nn.ModuleList()
+        for _ in range(num_repeats - 1):
+            self.hidden_layers.append(torch.nn.Sequential(
+                torch.nn.Linear(hidden_dim, hidden_dim),
+                torch.nn.LayerNorm(hidden_dim),
+                torch.nn.Tanh()
+            ))
+
+        self.output_layer = torch.nn.Sequential(
+            torch.nn.Linear(hidden_dim, output_dim),
+            torch.nn.Tanh()
+        )
+
+    def forward(self, x):
+        x = self.input_layer(x)
+        residual = x
+
+        for i, layer in enumerate(self.hidden_layers):
+            out = layer(x)
+            is_last_layer = (i == len(self.hidden_layers) - 1)
+            is_residual_point = ((i + 1) % self.residual_interval == 0)
+
+            if is_residual_point or is_last_layer:
+                x = out + residual
+                residual = x
+            else:
+                x = out
+
+        x = self.output_layer(x)
+        return x
+        
+######################################################
+# linear block
 # for MLP models
 def make_linear_norm_block(input_dim, hidden_dim, num_repeats, output_dim):
     """

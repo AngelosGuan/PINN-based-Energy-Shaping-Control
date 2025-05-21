@@ -5,7 +5,7 @@ from torch import nn
 from models.dof8.dynamics import Mp, Mf, g, l1, l2, la, lf, I1x, I2x, Ipx, slope, M1, M2
 # import dynamic function for contact condition, M, N
 from models.dof8.dynamics import determine_phase_masks, calculate_Mmtx, calculate_Nvect
-from configs.config_dof8 import EPSILON
+from configs.config_dof8 import EPSILON, RESIDUAL_INV, HIDDEN_WIDTH
 from core.utils import make_linear_norm_block
 
 
@@ -24,14 +24,38 @@ class MLP(nn.Module):
 
         self.INPUT_DIM = 16
         self.OUTPUT_DIM = 8
-        self.HIDDEN_WIDTH = 1024
+        self.HIDDEN_WIDTH = HIDDEN_WIDTH
+        self.residual_interval = RESIDUAL_INV
         self.hard_boundary = False
         self.pos_def = True  
 
-        self.common = make_linear_norm_block(input_dim = self.INPUT_DIM, hidden_dim = self.HIDDEN_WIDTH, num_repeats=8, output_dim=self.HIDDEN_WIDTH)
-        self.branch1 = make_linear_norm_block(input_dim = self.HIDDEN_WIDTH, hidden_dim = self.HIDDEN_WIDTH, num_repeats=8, output_dim=self.OUTPUT_DIM)
-        self.branch2 = make_linear_norm_block(input_dim = self.HIDDEN_WIDTH, hidden_dim = self.HIDDEN_WIDTH, num_repeats=8, output_dim=self.OUTPUT_DIM)
-        self.branch3 = make_linear_norm_block(input_dim = self.HIDDEN_WIDTH, hidden_dim = self.HIDDEN_WIDTH, num_repeats=8, output_dim=self.OUTPUT_DIM)
+        self.common = ResidualLinearNormBlock(
+            input_dim=self.INPUT_DIM,
+            hidden_dim=self.HIDDEN_WIDTH,
+            num_repeats=8,
+            output_dim=self.HIDDEN_WIDTH,
+            residual_interval=2)
+
+        self.branch1 = ResidualLinearNormBlock(
+            input_dim=self.HIDDEN_WIDTH,
+            hidden_dim=self.HIDDEN_WIDTH,
+            num_repeats=8,
+            output_dim=self.OUTPUT_DIM,
+            residual_interval=2)
+
+        self.branch2 = ResidualLinearNormBlock(
+            input_dim=self.HIDDEN_WIDTH,
+            hidden_dim=self.HIDDEN_WIDTH,
+            num_repeats=8,
+            output_dim=self.OUTPUT_DIM,
+            residual_interval=2)
+        self.branch3 = ResidualLinearNormBlock(
+            input_dim=self.HIDDEN_WIDTH,
+            hidden_dim=self.HIDDEN_WIDTH,
+            num_repeats=8,
+            output_dim=self.OUTPUT_DIM,
+            residual_interval=2)
+
         self._initialize_weights()
 
     def forward(self, x):

@@ -11,6 +11,15 @@ max_iter_lbfgs = 100
 # batch size
 BATCH_SIZE = 8
 
+# residual interval
+RESIDUAL_INV = 2
+
+# hidden layer width
+HIDDEN_WIDTH = 1024
+
+# max grad norm
+MAX_GRAD = 1000.0
+
 # training size
 num_train_data = 10000
 
