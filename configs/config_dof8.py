@@ -18,7 +18,7 @@ RESIDUAL_INV = 2
 HIDDEN_WIDTH = 1024
 
 # max grad norm
-MAX_GRAD = 1000.0
+MAX_GRAD = 100.0
 
 # training size
 num_train_data = 10000

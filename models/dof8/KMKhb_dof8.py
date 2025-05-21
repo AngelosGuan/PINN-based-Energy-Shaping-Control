@@ -11,9 +11,9 @@ from core.utils import ResidualLinearNormBlock
 
 
 ########################################################################
-k_a = 0.7
-k_b = 1.3
-k_delta = 0.3
+k_a = 0.9
+k_b = 1.1
+k_delta = 0.1
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ########################################################################
 # rewritten model class to accept both batched an unbatch input
