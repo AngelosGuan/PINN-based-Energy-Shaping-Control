@@ -157,7 +157,11 @@ class MLP(nn.Module):
 
     def _initialize_weights(self):
         for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='tanh')
-                if m.bias is not None:
-                    nn.init.zeros_(m.bias)
+            if isinstance(m, torch.nn.Linear):
+                # Use Xavier initialization for Tanh-compatible layers
+                torch.nn.init.xavier_uniform_(m.weight, gain=torch.nn.init.calculate_gain('tanh'))
+                torch.nn.init.zeros_(m.bias)
+
+                # Force final layer to output ~0 → ensure K ≈ I at init
+                if m.out_features == self.OUTPUT_DIM:
+                    torch.nn.init.zeros_(m.weight)
