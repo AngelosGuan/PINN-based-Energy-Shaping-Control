@@ -34,27 +34,31 @@ class MLP(nn.Module):
             hidden_dim=self.HIDDEN_WIDTH,
             num_repeats=8,
             output_dim=self.HIDDEN_WIDTH,
-            residual_interval=2)
+            residual_interval=2,
+            final=False)
 
         self.branch1 = ResidualLinearNormBlock(
             input_dim=self.HIDDEN_WIDTH,
             hidden_dim=self.HIDDEN_WIDTH,
-            num_repeats=8,
+            num_repeats=9,
             output_dim=self.OUTPUT_DIM,
-            residual_interval=2)
+            residual_interval=2,
+            final=True)
 
         self.branch2 = ResidualLinearNormBlock(
             input_dim=self.HIDDEN_WIDTH,
             hidden_dim=self.HIDDEN_WIDTH,
-            num_repeats=8,
+            num_repeats=9,
             output_dim=self.OUTPUT_DIM,
-            residual_interval=2)
+            residual_interval=2,
+            final=True)
         self.branch3 = ResidualLinearNormBlock(
             input_dim=self.HIDDEN_WIDTH,
             hidden_dim=self.HIDDEN_WIDTH,
-            num_repeats=8,
+            num_repeats=9,
             output_dim=self.OUTPUT_DIM,
-            residual_interval=2)
+            residual_interval=2,
+            final=True)
 
         self._initialize_weights()
 

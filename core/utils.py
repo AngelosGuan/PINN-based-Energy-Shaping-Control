@@ -129,29 +129,43 @@ def compute_gradient_norm(model):
 # residual block
 # for MLP models
 class ResidualLinearNormBlock(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_repeats, output_dim, residual_interval=2):
+    def __init__(self, input_dim, hidden_dim, num_repeats, output_dim, residual_interval=2, final=False):
         super().__init__()
         self.num_repeats = num_repeats
         self.residual_interval = residual_interval
 
-        self.input_layer = torch.nn.Sequential(
-            torch.nn.Linear(input_dim, hidden_dim),
-            torch.nn.LayerNorm(hidden_dim),
-            torch.nn.Tanh()
-        )
+        if not input_dim==hidden_dim:
+            self.input_layer = torch.nn.Sequential(
+                torch.nn.Linear(input_dim, input_dim*8),
+                torch.nn.Linear(input_dim, hidden_dim),
+                torch.nn.LayerNorm(hidden_dim),
+                torch.nn.SiLU()
+            )
+        else:
+            self.input_layer = torch.nn.Sequential(
+                torch.nn.Linear(input_dim, hidden_dim),
+                torch.nn.LayerNorm(hidden_dim),
+                torch.nn.SiLU()
+            )
 
         self.hidden_layers = torch.nn.ModuleList()
         for _ in range(num_repeats - 1):
             self.hidden_layers.append(torch.nn.Sequential(
                 torch.nn.Linear(hidden_dim, hidden_dim),
                 torch.nn.LayerNorm(hidden_dim),
-                torch.nn.Tanh()
+                torch.nn.SiLU()
             ))
 
-        self.output_layer = torch.nn.Sequential(
-            torch.nn.Linear(hidden_dim, output_dim),
-            torch.nn.Tanh()
-        )
+        if final:
+            self.output_layer = torch.nn.Sequential(
+                torch.nn.Linear(hidden_dim, output_dim),
+                torch.nn.Tanh()
+            )
+        else:
+            self.output_layer = torch.nn.Sequential(
+                torch.nn.Linear(hidden_dim, output_dim),
+                torch.nn.SiLU()
+            )
 
     def forward(self, x):
         x = self.input_layer(x)

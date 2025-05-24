@@ -69,6 +69,14 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 for param_group in adam.param_groups:
                     param_group['lr'] = lr_adam * 0.1  # reduce LR by factor of 10
 
+                        # for last two epochs in adam jiggle learn rate
+            if ep < 10:
+                for param_group in adam.param_groups:
+                    param_group['lr'] = lr_adam * 10  # increase LR by factor of 10
+            if ep == 10:
+                for param_group in adam.param_groups:
+                    param_group['lr'] = lr_adam  # normal learn rate
+
             
             train_loss = []
             loss_lists = [[] for _ in range(num_losses)]
@@ -82,7 +90,8 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 # backward prop
                 adam.zero_grad()
                 train_loss_batch.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_GRAD)
+                if ep > 5:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_GRAD)
                 adam.step()
 
                 train_loss.append(train_loss_batch.detach().cpu())
