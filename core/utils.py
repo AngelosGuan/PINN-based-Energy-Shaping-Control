@@ -137,7 +137,7 @@ class ResidualLinearNormBlock(torch.nn.Module):
         if not input_dim==hidden_dim:
             self.input_layer = torch.nn.Sequential(
                 torch.nn.Linear(input_dim, input_dim*8),
-                torch.nn.Linear(input_dim, hidden_dim),
+                torch.nn.Linear(input_dim*8, hidden_dim),
                 torch.nn.LayerNorm(hidden_dim),
                 torch.nn.SiLU()
             )
