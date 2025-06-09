@@ -14,6 +14,7 @@ import sys
 
 ########################################################################
 data_path = "data/dof2/"
+result_path = "results"
 ########################################################################  
 ## main function ##
 ########################################################################
@@ -44,11 +45,14 @@ if __name__ == "__main__":
 
     # get absolute storage path
     current_dir = os.getcwd()
-    STORAGE_PATH = os.path.abspath(os.path.join(current_dir, args.model_name))
+    STORAGE_PATH = os.path.abspath(os.path.join(current_dir, result_path, args.model_name))
     PRINT_PATH = os.path.abspath(os.path.join(STORAGE_PATH,"out.txt"))
     DATA_PATH = os.path.abspath(os.path.join(current_dir, data_path))
 
     # make sure paths exist
+    RESULTS_PATH = os.path.abspath(os.path.join(current_dir, result_path))
+    if not os.path.exists(RESULTS_PATH):
+        os.mkdir(RESULTS_PATH)
     if not os.path.exists(STORAGE_PATH):
         os.mkdir(STORAGE_PATH)
     with open(PRINT_PATH,"w") as f:

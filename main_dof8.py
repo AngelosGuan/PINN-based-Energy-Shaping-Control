@@ -52,6 +52,9 @@ if __name__ == "__main__":
     DATA_PATH = os.path.abspath(os.path.join(current_dir, data_path))
 
     # make sure paths exist
+    RESULTS_PATH = os.path.abspath(os.path.join(current_dir, result_path))
+    if not os.path.exists(RESULTS_PATH):
+        os.mkdir(RESULTS_PATH)
     if not os.path.exists(STORAGE_PATH):
         os.mkdir(STORAGE_PATH)
     with open(PRINT_PATH,"w") as f:
