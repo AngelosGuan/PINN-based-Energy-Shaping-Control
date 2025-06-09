@@ -119,7 +119,7 @@ class MLP(nn.Module):
     def _initialize_weights(self):
         for m in self.model.modules():
             if isinstance(m, nn.Linear):
-                if m.out_features == self.OUTPUT_DIM::
+                if m.out_features == self.OUTPUT_DIM:
                     # Linear before final tanh
                     nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('tanh'))
                 else:
