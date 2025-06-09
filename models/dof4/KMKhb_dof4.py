@@ -78,6 +78,8 @@ class MLP(nn.Module):
         if unbatched:
             M = M.squeeze(0)  # [4,4]
 
+        return M
+
     def calculate_N(self, X):
         """
         Compute physical N(q) vector.
@@ -112,7 +114,7 @@ class MLP(nn.Module):
         K = self.forward(x)       # [n,8,8] or [8,8]
 
         # construct shaped mass matrix using forward output K and mass matrix M
-        M_hat =K.transpose(-2, -1) @ M @ K  # [n,8,8] or [8,8]
+        M_hat = K.transpose(-2, -1) @ M @ K  # [n,8,8] or [8,8]
         return M_hat
 
 
