@@ -10,19 +10,21 @@ from core.sampling import uniform_sampling
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+def custom_inverse(A):
+    return damped_pseudo_inverse(A, lambda_reg=1e-1)
+
 class customLoss:
     def __init__(self):
         self.B = torch.tensor([[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[1,0,0,0,0],[0,1,0,0,0],[0,0,1,0,0],[0,0,0,1,0],[0,0,0,0,1]], dtype=torch.float32, device=device)
 
     ##################################
-    
     def get_PDE_Loss_trajectory(self, model, X):
         # helpers
 
         def calculate_B_annihilator(x):
             M = model.calculate_M(x)
             I = torch.eye(3,device=device)
-            Y = - M[0:3, 3:8] @ torch.inverse(M[3:8, 3:8])
+            Y = - M[0:3, 3:8] @ custom_inverse(M[3:8, 3:8])
             B = torch.cat((I, Y), dim=1)
             return B
 
@@ -40,9 +42,9 @@ class customLoss:
             A3_T = torch.transpose(A3, 0, 1)
 
             temp = (
-                phase1_mask * A1_T @ torch.inverse(A1 @ invM @ A1_T) @ A1 + 
-                phase2_mask * A2_T @ torch.inverse(A2 @ invM @ A2_T) @ A2 + 
-                phase3_mask * A3_T @ torch.inverse(A3 @ invM @ A3_T) @ A3
+                phase1_mask * A1_T @ custom_inverse(A1 @ invM @ A1_T) @ A1 + 
+                phase2_mask * A2_T @ custom_inverse(A2 @ invM @ A2_T) @ A2 + 
+                phase3_mask * A3_T @ custom_inverse(A3 @ invM @ A3_T) @ A3
                 )
             return temp
 
@@ -61,8 +63,8 @@ class customLoss:
             
             Mmtx = model.calculate_M(x)
             Mmtx_hat = model.calculate_M_hat(x)
-            Mmtx_inv = damped_pseudo_inverse(Mmtx)
-            Mmtx_hat_inv = damped_pseudo_inverse(Mmtx_hat)
+            Mmtx_inv = custom_inverse(Mmtx)
+            Mmtx_hat_inv = custom_inverse(Mmtx_hat)
 
             B_annihilator = calculate_B_annihilator(x)
 

@@ -34,7 +34,7 @@ class MLP(nn.Module):
             hidden_dim=self.HIDDEN_WIDTH,
             num_repeats=8,
             output_dim=self.HIDDEN_WIDTH,
-            residual_interval=2,
+            residual_interval=self.residual_interval,
             final=False)
 
         self.branch1 = ResidualLinearNormBlock(
@@ -42,7 +42,7 @@ class MLP(nn.Module):
             hidden_dim=self.HIDDEN_WIDTH,
             num_repeats=9,
             output_dim=self.OUTPUT_DIM,
-            residual_interval=2,
+            residual_interval=self.residual_interval,
             final=True)
 
         self.branch2 = ResidualLinearNormBlock(
@@ -50,14 +50,14 @@ class MLP(nn.Module):
             hidden_dim=self.HIDDEN_WIDTH,
             num_repeats=9,
             output_dim=self.OUTPUT_DIM,
-            residual_interval=2,
+            residual_interval=self.residual_interval,
             final=True)
         self.branch3 = ResidualLinearNormBlock(
             input_dim=self.HIDDEN_WIDTH,
             hidden_dim=self.HIDDEN_WIDTH,
             num_repeats=9,
             output_dim=self.OUTPUT_DIM,
-            residual_interval=2,
+            residual_interval=self.residual_interval,
             final=True)
 
         self._initialize_weights()
@@ -163,7 +163,7 @@ class MLP(nn.Module):
         for m in self.modules():
             if isinstance(m, torch.nn.Linear):
                 # Use Xavier initialization for Tanh-compatible layers
-                torch.nn.init.xavier_uniform_(m.weight, gain=torch.nn.init.calculate_gain('tanh'))
+                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
                 torch.nn.init.zeros_(m.bias)
 
                 # Force final layer to output ~0 → ensure K ≈ I at init

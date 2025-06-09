@@ -134,19 +134,12 @@ class ResidualLinearNormBlock(torch.nn.Module):
         self.num_repeats = num_repeats
         self.residual_interval = residual_interval
 
-        if not input_dim==hidden_dim:
-            self.input_layer = torch.nn.Sequential(
-                torch.nn.Linear(input_dim, input_dim*8),
-                torch.nn.Linear(input_dim*8, hidden_dim),
-                torch.nn.LayerNorm(hidden_dim),
-                torch.nn.SiLU()
-            )
-        else:
-            self.input_layer = torch.nn.Sequential(
-                torch.nn.Linear(input_dim, hidden_dim),
-                torch.nn.LayerNorm(hidden_dim),
-                torch.nn.SiLU()
-            )
+
+        self.input_layer = torch.nn.Sequential(
+            torch.nn.Linear(input_dim, hidden_dim),
+            torch.nn.LayerNorm(hidden_dim),
+            torch.nn.SiLU()
+        )
 
         self.hidden_layers = torch.nn.ModuleList()
         for _ in range(num_repeats - 1):
