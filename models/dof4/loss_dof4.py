@@ -157,7 +157,7 @@ class customLoss:
         #### not used
 
         # pos_def_loss
-        pos_penalties = torch.nn.functional.softplus(-eigvals).sum(dim=-1)
+        pos_penalties = torch.nn.functional.softplus(-eigvals_hat).sum(dim=-1)
         pos_def_loss = pos_penalties.mean()
 
 
