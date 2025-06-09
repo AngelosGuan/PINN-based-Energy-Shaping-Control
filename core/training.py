@@ -57,7 +57,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
     # save losses for logging
     train_loss_epoch = []
     grad_norm_epoch = []
-    num_losses  = len(weights)
+    num_losses  = 6
     losses_epoch = [[] for _ in range(num_losses)]
 
 
