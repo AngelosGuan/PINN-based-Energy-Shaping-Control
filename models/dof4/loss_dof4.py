@@ -2,6 +2,7 @@ import torch
 from core.utils import bounded_quad_loss
 from models.dof4 import dynamics
 from core.sampling import uniform_sampling
+import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
