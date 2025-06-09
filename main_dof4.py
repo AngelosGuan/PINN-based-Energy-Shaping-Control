@@ -51,6 +51,9 @@ if __name__ == "__main__":
     #DATA_PATH = os.path.abspath(os.path.join(current_dir, data_path))
 
     # make sure paths exist
+    RESULTS_PATH = os.path.abspath(os.path.join(current_dir, result_path))
+    if not os.path.exists(RESULTS_PATH):
+        os.mkdir(RESULTS_PATH)
     if not os.path.exists(STORAGE_PATH):
         os.mkdir(STORAGE_PATH)
     with open(PRINT_PATH,"w") as f:
@@ -66,7 +69,7 @@ if __name__ == "__main__":
     model = models.MLP().to(device)
 
     # create training data from sampling
-    X = sampling.lhs_sampling(n_samples=configs.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     
     # call train
     (train_loss_epoch, grad_norm_epoch, 
@@ -97,11 +100,11 @@ if __name__ == "__main__":
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="sobel_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
     # uniform
-    test_set = sampling.uniform_sampling(n_samples=configs.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    test_set = sampling.uniform_sampling(n_samples=config.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="uniform_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
     # LHS
-    test_set = sampling.lhs_sampling(n_samples=configs.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    test_set = sampling.lhs_sampling(n_samples=config.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="lhs_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
     # matlab data
