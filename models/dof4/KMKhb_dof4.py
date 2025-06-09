@@ -71,7 +71,7 @@ class MLP(nn.Module):
             X = X.unsqueeze(0) 
             unbatched = True
 
-        M_list = [calculate_Mmtx(x, device,, I1z, I2z, Ipz, Mp, Ms, Mt, l1, l2) for x in X]
+        M_list = [calculate_Mmtx(x, device, I1z, I2z, Ipz, Mp, Ms, Mt, l1, l2) for x in X]
         M = torch.stack(M_list, dim=0) 
 
         # if unbatched, output accordingly
