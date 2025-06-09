@@ -6,7 +6,7 @@ from core.sampling import uniform_sampling
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def custom_inverse(x):
-    torch.linalg.pinv(x)
+    return torch.linalg.pinv(x)
 
 class customLoss:
     def __init__(self):
