@@ -125,7 +125,7 @@ class customLoss:
         residual_loss = L1s.mean()
 
         # control_loss
-        control_loss = bounded_quad_loss(us, dynamics.CONTROL_BOUND)
+        control_loss = bounded_quad_loss(us, dynamics.CONTROL_BOUND).mean()
 
         # deviation_loss
         bound = 0.5
