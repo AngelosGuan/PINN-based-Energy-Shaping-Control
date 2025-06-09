@@ -120,7 +120,7 @@ class customLoss:
         def calculate_B_annihilator(x):
             M = model.calculate_M(x)
             I = torch.eye(3,device=device)
-            Y = - M[0:3, 3:8] @ torch.inverse(M[3:8, 3:8])
+            Y = - M[0:3, 3:8] @ custom_inverse(M[3:8, 3:8])
             B = torch.cat((I, Y), dim=1)
             return B
 
@@ -138,9 +138,9 @@ class customLoss:
             A3_T = torch.transpose(A3, 0, 1)
 
             temp = (
-                phase1_mask * A1_T @ torch.inverse(A1 @ invM @ A1_T) @ A1 + 
-                phase2_mask * A2_T @ torch.inverse(A2 @ invM @ A2_T) @ A2 + 
-                phase3_mask * A3_T @ torch.inverse(A3 @ invM @ A3_T) @ A3
+                phase1_mask * A1_T @ custom_inverse(A1 @ invM @ A1_T) @ A1 + 
+                phase2_mask * A2_T @ custom_inverse(A2 @ invM @ A2_T) @ A2 + 
+                phase3_mask * A3_T @ custom_inverse(A3 @ invM @ A3_T) @ A3
                 )
             return temp
 
@@ -182,7 +182,7 @@ class customLoss:
 
             B_lamb = calculate_lambda(x, Mmtx_inv, self.B)
             B_T = torch.transpose(B_lamb,0,1)
-            psuedo_inv_B = torch.inverse(B_T @ B_lamb) @ B_T
+            psuedo_inv_B = custom_inverse(B_T @ B_lamb) @ B_T
             control_tensor = psuedo_inv_B @ diff
 
             return 0.5 * torch.linalg.vector_norm(matching_tensor, ord=2), control_tensor[0][0]
