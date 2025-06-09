@@ -169,3 +169,14 @@ class MLP(nn.Module):
                 # Force final layer to output ~0 → ensure K ≈ I at init
                 if m.out_features == self.OUTPUT_DIM:
                     torch.nn.init.zeros_(m.weight)
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, torch.nn.Linear):
+                # Use Kaiming initialization for SiLU-compatible layers
+                torch.nn.init.kaiming_uniform_(m.weight, nonlinearity='relu')  # SiLU is similar to ReLU
+                torch.nn.init.zeros_(m.bias)
+
+                # Force final layer to output ~0 → ensure K ≈ I at init
+                if m.out_features == self.OUTPUT_DIM:
+                    torch.nn.init.zeros_(m.weight)
