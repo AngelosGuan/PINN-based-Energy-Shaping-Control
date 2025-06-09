@@ -27,7 +27,7 @@ class MLP(nn.Module):
             input_dim=self.INPUT_DIM,
             hidden_dim=self.HIDDEN_WIDTH,
             num_repeats=NUM_DEPTH,
-            output_dim=self.HIDDEN_WIDTH,
+            output_dim=self.OUTPUT_DIM,
             residual_interval=self.residual_interval,
             final=True)
         self._initialize_weights()
