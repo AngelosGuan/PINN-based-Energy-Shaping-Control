@@ -118,7 +118,7 @@ class customLoss:
         # compute control 
         invB_exp = self.B_pinv.unsqueeze(0).expand(X.shape[0],-1,-1)
 
-        us = torch.bmm(invB_exp, diff)  
+        us = torch.bmm(invB_exp, diff).squeeze(-1)     # → (B, 5)
 
         # residual_loss
         residual_loss = L1s.mean()
