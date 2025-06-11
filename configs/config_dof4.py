@@ -1,8 +1,8 @@
 SEED = 60
 
 # adam 
-lr_adam = 1e-3
-l2_regu_adam = 1e-6
+lr_adam = 1e-4
+l2_regu_adam = 1e-5
 
 # lbfgs
 lr_lbfgs = 1.0 
@@ -21,7 +21,7 @@ HIDDEN_WIDTH = 1024
 NUM_DEPTH = 4
 
 # max grad norm
-MAX_GRAD = 1000.0
+MAX_GRAD = 100.0
 
 # training size
 num_train_data = 10000
