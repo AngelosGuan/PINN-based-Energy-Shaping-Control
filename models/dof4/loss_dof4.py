@@ -14,7 +14,8 @@ class customLoss:
         self.B_left_annihilator = torch.tensor([[1.0, 0, 0, 0], [0, 1.0, 0, 0], [0, 0, 0, 1.0]], device=device)
         self.B = torch.tensor([[0], [0], [1.0], [0]], device=device)
         # self.B = torch.tensor([[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 1.0, 1.0, 0],[0, 0, 0, 0, 0]], device=device)
-        self.B_pinv = torch.inverse(B_T @ B_lamb) @ B_T
+        B_T = torch.transpose(self.B,0,1)
+        self.B_pinv = torch.inverse(B_T @ self.B) @ B_T
     ##################################
     # vmap (not necessary here!)
     def get_PDE_Loss_trajectory(self, model, X):
