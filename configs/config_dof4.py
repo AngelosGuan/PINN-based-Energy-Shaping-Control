@@ -1,7 +1,7 @@
 SEED = 60
 
 # adam 
-lr_adam = 1e-4
+lr_adam = 1e-3
 l2_regu_adam = 1e-5
 
 # lbfgs
