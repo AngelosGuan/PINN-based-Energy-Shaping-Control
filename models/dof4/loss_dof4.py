@@ -1,5 +1,5 @@
 import torch
-from core.utils import bounded_quad_loss
+from core.utils import bounded_quad_loss, damped_pseudo_inverse
 from models.dof4 import dynamics
 from core.sampling import uniform_sampling
 import numpy as np
@@ -7,7 +7,7 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def custom_inverse(x):
-    return torch.linalg.pinv(x)
+    return damped_pseudo_inverse(x)
 
 class customLoss:
     def __init__(self):
