@@ -123,7 +123,12 @@ def compute_gradient_norm(model):
             total_norm += param_norm.item() ** 2
     return total_norm ** 0.5
 
-
+########################################################
+def gradients_all_zero(model):
+    return all(
+        (p.grad is None or torch.all(p.grad == 0))
+        for p in model.parameters() if p.requires_grad
+    )
 
 ######################################################
 # residual block

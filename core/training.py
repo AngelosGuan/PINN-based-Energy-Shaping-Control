@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import sys
-from core.utils import compute_gradient_norm, CosineAnnealingWarmupRestarts
+from core.utils import compute_gradient_norm, CosineAnnealingWarmupRestarts, gradients_all_zero
 from configs.config_dof8 import MAX_GRAD
 import traceback
 
@@ -50,7 +50,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
         lbfgs.zero_grad()
         loss, _ = loss_funcs.total_loss(model, X, weights)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_GRAD)
+        #torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_GRAD)
         return loss
 
 
@@ -90,7 +90,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 # backward prop
                 adam.zero_grad()
                 train_loss_batch.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_GRAD)
+                #torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_GRAD)
                 adam.step()
 
                 train_loss.append(train_loss_batch.detach().cpu())
@@ -112,6 +112,10 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
             # compute grad norm
             total_norm = compute_gradient_norm(model)
             grad_norm_epoch.append(total_norm)
+            if (gradients_all_zero(model)):
+                print("All gradients vanished, abort!!!")
+                sys.exit(1)
+
 
             # print progress
             if ep % 10 == 0 or ep == num_epochs_adam - 1:
