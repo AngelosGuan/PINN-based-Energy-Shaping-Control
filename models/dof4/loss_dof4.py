@@ -7,7 +7,8 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def custom_inverse(x):
-    return damped_pseudo_inverse(x)
+    return torch.linalg.pinv(x)
+    #return damped_pseudo_inverse(x)
 
 class customLoss:
     def __init__(self):

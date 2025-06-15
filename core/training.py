@@ -80,6 +80,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
             
             train_loss = []
             loss_lists = [[] for _ in range(num_losses)]
+            minibatch_grad_norms = []
 
             # using minibatch
             for (batch,) in dataloader:
@@ -91,6 +92,12 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 adam.zero_grad()
                 train_loss_batch.backward()
                 #torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_GRAD)
+                # log gradient norm for this batch
+                grad_norm = compute_gradient_norm(model)
+                minibatch_grad_norms.append(grad_norm.item())
+                if (gradients_all_zero(model)):
+                    print("All gradients vanished, abort!!!")
+                    sys.exit(1)
                 adam.step()
 
                 train_loss.append(train_loss_batch.detach().cpu())
@@ -110,12 +117,8 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
             scheduler.step()
 
             # compute grad norm
-            total_norm = compute_gradient_norm(model)
-            grad_norm_epoch.append(total_norm)
-            if (gradients_all_zero(model)):
-                print("All gradients vanished, abort!!!")
-                sys.exit(1)
-
+            avg_grad_norm  = np.mean(minibatch_grad_norms)
+            grad_norm_epoch.append(avg_grad_norm)
 
             # print progress
             if ep % 10 == 0 or ep == num_epochs_adam - 1:
