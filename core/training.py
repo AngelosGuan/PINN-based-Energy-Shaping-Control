@@ -94,7 +94,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 #torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_GRAD)
                 # log gradient norm for this batch
                 grad_norm = compute_gradient_norm(model)
-                minibatch_grad_norms.append(grad_norm.item())
+                minibatch_grad_norms.append(grad_norm)
                 if (gradients_all_zero(model)):
                     print("All gradients vanished, abort!!!")
                     sys.exit(1)
