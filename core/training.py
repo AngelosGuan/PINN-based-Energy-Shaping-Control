@@ -95,9 +95,9 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 # log gradient norm for this batch
                 grad_norm = compute_gradient_norm(model)
                 minibatch_grad_norms.append(grad_norm)
-                if (gradients_all_zero(model)):
-                    print("All gradients vanished, abort!!!")
-                    sys.exit(1)
+                # if (gradients_all_zero(model)):
+                #     print("All gradients vanished, abort!!!")
+                #     sys.exit(1)
                 adam.step()
 
                 train_loss.append(train_loss_batch.detach().cpu())
@@ -124,7 +124,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
             if ep % 10 == 0 or ep == num_epochs_adam - 1:
                 with open(print_path, "a") as f:
                     print(f"epoch: {ep + 1}, train loss: {np.mean(train_loss):.7f}, "
-                        f"grad norm: {total_norm:.7f}, " +", ".join([f"L{i+1}: {mean:.7f}" for i, mean in enumerate([losses_epoch[j][ep] for j in range(num_losses)])]), file=f)
+                        f"grad norm: {avg_grad_norm:.7f}, " +", ".join([f"L{i+1}: {mean:.7f}" for i, mean in enumerate([losses_epoch[j][ep] for j in range(num_losses)])]), file=f)
 
             del train_loss, loss_lists
             torch.cuda.empty_cache()
