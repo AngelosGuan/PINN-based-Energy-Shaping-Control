@@ -6,9 +6,32 @@ import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def custom_inverse(x):
-    #return torch.linalg.pinv(x)
-    return damped_pseudo_inverse(x)
+def custom_inverse(M):
+    cond_threshold = 1e6
+    epsilon = 1e-3
+
+    is_batched = M.dim() == 3
+
+    if not is_batched:
+        M = M.unsqueeze(0)  # → (1, d, d)
+
+    B, d, _ = M.shape
+
+    conds = torch.linalg.cond(M)  # (B,)
+    I = torch.eye(d, device=M.device).expand(B, d, d)
+    mask = conds > cond_threshold
+
+    M_reg = M.clone()
+    M_reg[mask] = M[mask] + epsilon * I[mask]
+
+    result = torch.linalg.pinv(M_reg)
+
+    if not is_batched:
+        result = result.squeeze(0)  # back to (d, d)
+
+    return result
+    #return torch.linalg.pinv(M)
+    #return damped_pseudo_inverse(M)
 
 class customLoss:
     def __init__(self):

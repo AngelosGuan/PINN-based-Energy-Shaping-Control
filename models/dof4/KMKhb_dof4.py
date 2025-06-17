@@ -121,12 +121,12 @@ class MLP(nn.Module):
     def _initialize_weights(self):
         for m in self.model.modules():
             if isinstance(m, nn.Linear):
-                if m.out_features == self.OUTPUT_DIM:
+                #if m.out_features == self.OUTPUT_DIM:
                     # Linear before final tanh
-                    nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('tanh'))
-                else:
+                nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('tanh'))
+                #else:
                     # All other linear layers assume SiLU (Kaiming works well)
-                    nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
+                    #nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
 
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)

@@ -143,7 +143,7 @@ class ResidualLinearNormBlock(torch.nn.Module):
         self.input_layer = torch.nn.Sequential(
             torch.nn.Linear(input_dim, hidden_dim),
             torch.nn.LayerNorm(hidden_dim),
-            torch.nn.SiLU()
+            torch.nn.Tanh()
         )
 
         self.hidden_layers = torch.nn.ModuleList()
@@ -151,19 +151,14 @@ class ResidualLinearNormBlock(torch.nn.Module):
             self.hidden_layers.append(torch.nn.Sequential(
                 torch.nn.Linear(hidden_dim, hidden_dim),
                 torch.nn.LayerNorm(hidden_dim),
-                torch.nn.SiLU()
+                torch.nn.Tanh()
             ))
 
-        if final:
-            self.output_layer = torch.nn.Sequential(
-                torch.nn.Linear(hidden_dim, output_dim),
-                torch.nn.Tanh()
-            )
-        else:
-            self.output_layer = torch.nn.Sequential(
-                torch.nn.Linear(hidden_dim, output_dim),
-                torch.nn.SiLU()
-            )
+        self.output_layer = torch.nn.Sequential(
+            torch.nn.Linear(hidden_dim, output_dim),
+            torch.nn.Tanh()
+        )
+
 
     def forward(self, x):
         x = self.input_layer(x)
