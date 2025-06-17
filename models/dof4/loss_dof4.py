@@ -18,11 +18,14 @@ def custom_inverse(M):
     B, d, _ = M.shape
 
     conds = torch.linalg.cond(M)  # (B,)
-    I = torch.eye(d, device=M.device).expand(B, d, d)
-    mask = conds > cond_threshold
+    conds = conds.unsqueeze(-1).unsqueeze(-1)  # shape: (B, 1, 1) for broadcasting
 
-    M_reg = M.clone()
-    M_reg[mask] = M[mask] + epsilon * I[mask]
+    I = torch.eye(d, device=M.device).expand(B, d, d)
+    
+    # mask: shape (B, 1, 1), value 1.0 if ill-conditioned, 0.0 if not
+    mask = (conds > cond_threshold).float()
+
+    M_reg = M + mask * (epsilon * I)
 
     result = torch.linalg.pinv(M_reg)
 
