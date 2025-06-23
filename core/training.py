@@ -36,7 +36,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
 
     # setup dataloader
     dataset = torch.utils.data.TensorDataset(X)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
     # Initialize optimizers
     # adam

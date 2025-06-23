@@ -39,6 +39,12 @@ class MLP(nn.Module):
             nn.Linear(1024,1024),
             nn.LayerNorm(1024),
             nn.Tanh(),
+            nn.Linear(1024,1024),
+            nn.LayerNorm(1024),
+            nn.Tanh(),
+            nn.Linear(1024,1024),
+            nn.LayerNorm(1024),
+            nn.Tanh(),
             nn.Linear(1024, self.OUTPUT_DIM),
             nn.Tanh()
             )
