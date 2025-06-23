@@ -23,13 +23,25 @@ class MLP(nn.Module):
         self.hard_boundary = True
         self.pos_def = True    
 
-        self.model = ResidualLinearNormBlock(
-            input_dim=self.INPUT_DIM,
-            hidden_dim=self.HIDDEN_WIDTH,
-            num_repeats=NUM_DEPTH,
-            output_dim=self.OUTPUT_DIM,
-            residual_interval=self.residual_interval,
-            final=True)
+        self.model = nn.Sequential(
+            nn.Linear(self.INPUT_DIM, 1024),
+            nn.LayerNorm(1024),
+            nn.Tanh(),
+            nn.Linear(1024, 1024),
+            nn.LayerNorm(1024),
+            nn.Tanh(),
+            nn.Linear(1024,1024),
+            nn.LayerNorm(1024),
+            nn.Tanh(),
+            nn.Linear(1024,1024),
+            nn.LayerNorm(1024),
+            nn.Tanh(),
+            nn.Linear(1024,1024),
+            nn.LayerNorm(1024),
+            nn.Tanh(),
+            nn.Linear(1024, self.OUTPUT_DIM),
+            nn.Tanh()
+            )
         self._initialize_weights()
 
     def forward(self, x):
@@ -121,13 +133,7 @@ class MLP(nn.Module):
     def _initialize_weights(self):
         for m in self.model.modules():
             if isinstance(m, nn.Linear):
-                #if m.out_features == self.OUTPUT_DIM:
-                    # Linear before final tanh
                 nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('tanh'))
-                #else:
-                    # All other linear layers assume SiLU (Kaiming works well)
-                    #nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
-
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
         return
