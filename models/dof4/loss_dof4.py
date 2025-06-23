@@ -7,8 +7,8 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def custom_inverse(M):
-    cond_threshold = 1e6
-    epsilon = 1e-3
+    cond_threshold = 1e3
+    epsilon = 1e-2
 
     is_batched = M.dim() == 3
 
@@ -35,6 +35,34 @@ def custom_inverse(M):
     return result
     #return torch.linalg.pinv(M)
     #return damped_pseudo_inverse(M)
+
+# def custom_inverse(M, epsilon=1e-3, cond_threshold=1e4):
+#     """
+#     Batch-safe pseudo-inverse with soft regularization.
+#     Applies ε * I scaled by normalized condition number when κ(M) is high.
+#     """
+#     is_batched = M.dim() == 3
+#     if not is_batched:
+#         M = M.unsqueeze(0)  # (1, d, d)
+
+#     B, d, _ = M.shape
+#     conds = torch.linalg.cond(M)  # (B,)
+#     conds = conds.clamp(min=1.0)  # avoid division by zero
+
+#     # Scaling factor: (conds / threshold) capped at 1.0
+#     scale = (conds / cond_threshold).clamp(max=1.0)  # (B,)
+#     scale = scale.view(-1, 1, 1)  # broadcast to (B, 1, 1)
+
+#     I = torch.eye(d, device=M.device).expand(B, d, d)
+#     M_reg = M + scale * (epsilon * I)
+
+#     M_inv = torch.linalg.pinv(M_reg)
+
+#     if not is_batched:
+#         M_inv = M_inv.squeeze(0)
+
+#     return M_inv
+
 
 class customLoss:
     def __init__(self):
