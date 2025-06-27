@@ -7,7 +7,7 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def custom_inverse(M):
-    cond_threshold = 1e3
+    cond_threshold = 1e4
     epsilon = 1e-2
 
     is_batched = M.dim() == 3

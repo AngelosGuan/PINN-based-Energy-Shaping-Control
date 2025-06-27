@@ -24,28 +24,16 @@ class MLP(nn.Module):
         self.pos_def = True    
 
         self.model = nn.Sequential(
-            nn.Linear(self.INPUT_DIM, 1024),
-            nn.LayerNorm(1024),
+            nn.Linear(self.INPUT_DIM, 2048),
+            nn.LayerNorm(2048),
             nn.Tanh(),
-            nn.Linear(1024, 1024),
-            nn.LayerNorm(1024),
+            nn.Linear(2048, 2048),
+            nn.LayerNorm(2048),
             nn.Tanh(),
-            nn.Linear(1024,1024),
-            nn.LayerNorm(1024),
+            nn.Linear(2048,2048),
+            nn.LayerNorm(2048),
             nn.Tanh(),
-            nn.Linear(1024,1024),
-            nn.LayerNorm(1024),
-            nn.Tanh(),
-            nn.Linear(1024,1024),
-            nn.LayerNorm(1024),
-            nn.Tanh(),
-            nn.Linear(1024,1024),
-            nn.LayerNorm(1024),
-            nn.Tanh(),
-            nn.Linear(1024,1024),
-            nn.LayerNorm(1024),
-            nn.Tanh(),
-            nn.Linear(1024, self.OUTPUT_DIM),
+            nn.Linear(2048, self.OUTPUT_DIM),
             nn.Tanh()
             )
         self._initialize_weights()
