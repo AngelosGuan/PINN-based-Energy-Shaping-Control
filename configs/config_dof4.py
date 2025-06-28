@@ -1,7 +1,7 @@
 SEED = 60
 
 # adam 
-lr_adam = 1e-3
+lr_adam = 1e-4
 l2_regu_adam = 1e-5
 
 # lbfgs
@@ -15,7 +15,7 @@ BATCH_SIZE = 16
 RESIDUAL_INV = 2
 
 # hidden layer width
-HIDDEN_WIDTH = 1024
+HIDDEN_WIDTH = 4096
 
 # neural network depth
 NUM_DEPTH = 4
