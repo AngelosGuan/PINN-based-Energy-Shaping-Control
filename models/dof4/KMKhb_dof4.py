@@ -33,9 +33,6 @@ class MLP(nn.Module):
             nn.Linear(self.HIDDEN_WIDTH,self.HIDDEN_WIDTH),
             nn.LayerNorm(self.HIDDEN_WIDTH),
             nn.Tanh(),
-            nn.Linear(self.HIDDEN_WIDTH,self.HIDDEN_WIDTH),
-            nn.LayerNorm(self.HIDDEN_WIDTH),
-            nn.Tanh(),
             nn.Linear(self.HIDDEN_WIDTH, self.OUTPUT_DIM),
             nn.Tanh()
             )
