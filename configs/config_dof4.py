@@ -15,10 +15,10 @@ BATCH_SIZE = 16
 RESIDUAL_INV = 2
 
 # hidden layer width
-HIDDEN_WIDTH = 8192
+HIDDEN_WIDTH = 2048
 
 # neural network depth
-NUM_DEPTH = 4
+NUM_DEPTH = 2
 
 # max grad norm
 MAX_GRAD = 100.0

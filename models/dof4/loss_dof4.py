@@ -241,15 +241,15 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
         weights = [1.0, 1.0, 1.0, 1.0, 1.0]
         _, [residual_loss, control_loss, deviation_loss, eig_loss, sparse_loss, pos_def_loss] = loss_funcs.total_loss(model, X, weights)
 
-        # eps = 1e-10
-        # weights = np.array([
-        #     1.0 / (1.0 + np.log(1.0 + residual_loss + eps)),
-        #     1.0 / (1.0 + np.log(1.0 + control_loss + eps)),
-        #     1.0 / (1.0 + np.log(1.0 + deviation_loss + eps)),
-        #     1.0 / (1.0 + np.log(1.0 + eig_loss + eps)),
-        #     1.0 / (1.0 + np.log(1.0 + sparse_loss + eps))
-        # ])
-        # clamped_weights = np.clip(weights, a_min=0.1, a_max=10.0)
+        eps = 1e-10
+        weights = np.array([
+            1.0 / (1.0 + np.log(1.0 + residual_loss + eps)),
+            1.0 / (1.0 + np.log(1.0 + control_loss + eps)),
+            1.0 / (1.0 + np.log(1.0 + deviation_loss + eps)),
+            1.0 / (1.0 + np.log(1.0 + eig_loss + eps)),
+            1.0 / (1.0 + np.log(1.0 + sparse_loss + eps))
+        ])
+        clamped_weights = np.clip(weights, a_min=0.1, a_max=10.0)
 
         # Optional debug printing
         if print_path is not None:
@@ -260,5 +260,5 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
                       f"L4: {deviation_loss:.6f}, L5: {eig_loss:.6f}, L6: {sparse_loss:.6f}, "
                       f"L7: {pos_def_loss:.6f}", file=f)
 
-        #return clamped_weights
-        return [1.0, 0.0, 0.0, 0.0, 0.0]
+        return clamped_weights
+        #return [1.0, 0.0, 0.0, 0.0, 0.0]
