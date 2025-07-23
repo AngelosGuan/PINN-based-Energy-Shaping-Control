@@ -254,7 +254,7 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
         eps = 1e-10
         clamped_weights = np.array([
             1.0 / (residual_loss + eps),
-            1.0 / (control_loss + eps),
+            0.0, #1.0 / (control_loss + eps),
             1.0 / (deviation_loss + eps),
             1.0 / (eig_loss + eps),
             1.0 / (sparse_loss + eps)
