@@ -215,14 +215,17 @@ class customLoss:
         #### not used
 
         # pos_def_loss
-        pos_penalties = torch.nn.functional.softplus(-eigvals_hat).sum(dim=-1)
+        min_eig_value = 1e-2
+        pos_penalties = torch.nn.functional.softplus(min_eig_value-eigvals_hat).sum(dim=-1)
         pos_def_loss = pos_penalties.mean()
 
 
         assert len(weights) == 5
         W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
 
-        total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
+        #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
+        total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.001*pos_def_loss
+        
         losses = [
             residual_loss.detach().cpu(),
             control_loss.detach().cpu(),
@@ -254,9 +257,9 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
         eps = 1e-10
         clamped_weights = np.array([
             1.0 / (residual_loss + eps),
-            0.0, #1.0 / (control_loss + eps),
+            1.0 / (control_loss + eps),
             1.0 / (deviation_loss + eps),
-            1.0 / (eig_loss + eps),
+            0.0, #1.0 / (eig_loss + eps),
             1.0 / (sparse_loss + eps)
         ])
 
