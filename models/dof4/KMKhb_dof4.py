@@ -64,7 +64,7 @@ class MLP(nn.Module):
 
         return K
 
-    def project_positive_definite(self, M_hat, λ_min=1e-2):
+    def project_positive_definite(self, M_hat, λ_min=1e-3):
         """
         Project shaped mass matrix to ensure it is positive definite
         """

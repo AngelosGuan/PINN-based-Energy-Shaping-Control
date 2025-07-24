@@ -7,33 +7,35 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def custom_inverse(M):
-    cond_threshold = 1e4
-    epsilon = 1e-2
-
-    is_batched = M.dim() == 3
-
-    if not is_batched:
-        M = M.unsqueeze(0)  # → (1, d, d)
-
-    B, d, _ = M.shape
-
-    conds = torch.linalg.cond(M)  # (B,)
-    conds = conds.unsqueeze(-1).unsqueeze(-1)  # shape: (B, 1, 1) for broadcasting
-
-    I = torch.eye(d, device=M.device).expand(B, d, d)
+    return torch.linalg.pinv(M)
     
-    # mask: shape (B, 1, 1), value 1.0 if ill-conditioned, 0.0 if not
-    mask = (conds > cond_threshold).float()
+    # cond_threshold = 1e4
+    # epsilon = 1e-2
 
-    M_reg = M + mask * (epsilon * I)
+    # is_batched = M.dim() == 3
 
-    result = torch.linalg.pinv(M_reg)
+    # if not is_batched:
+    #     M = M.unsqueeze(0)  # → (1, d, d)
 
-    if not is_batched:
-        result = result.squeeze(0)  # back to (d, d)
+    # B, d, _ = M.shape
 
-    return result
-    #return torch.linalg.pinv(M)
+    # conds = torch.linalg.cond(M)  # (B,)
+    # conds = conds.unsqueeze(-1).unsqueeze(-1)  # shape: (B, 1, 1) for broadcasting
+
+    # I = torch.eye(d, device=M.device).expand(B, d, d)
+    
+    # # mask: shape (B, 1, 1), value 1.0 if ill-conditioned, 0.0 if not
+    # mask = (conds > cond_threshold).float()
+
+    # M_reg = M + mask * (epsilon * I)
+
+    # result = torch.linalg.pinv(M_reg)
+
+    # if not is_batched:
+    #     result = result.squeeze(0)  # back to (d, d)
+
+    # return result
+    
     #return damped_pseudo_inverse(M)
 
 # def custom_inverse(M, epsilon=1e-3, cond_threshold=1e4):
@@ -254,14 +256,14 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
         # ])
         # clamped_weights = np.clip(weights, a_min=0.1, a_max=10.0)
 
-        eps = 1e-10
-        clamped_weights = np.array([
-            1.0 / (residual_loss + eps),
-            1.0 / (control_loss + eps),
-            1.0 / (deviation_loss + eps),
-            0.0, #1.0 / (eig_loss + eps),
-            1.0 / (sparse_loss + eps)
-        ])
+        # eps = 1e-10
+        # clamped_weights = np.array([
+        #     1.0 / (residual_loss + eps),
+        #     1.0 / (control_loss + eps),
+        #     1.0 / (deviation_loss + eps),
+        #     1.0 / (eig_loss + eps),
+        #     1.0 / (sparse_loss + eps)
+        # ])
 
         # Optional debug printing
         if print_path is not None:
@@ -272,5 +274,5 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
                       f"L4: {deviation_loss:.6f}, L5: {eig_loss:.6f}, L6: {sparse_loss:.6f}, "
                       f"L7: {pos_def_loss:.6f}", file=f)
 
-        return clamped_weights
-        #return [1.0, 0.0, 0.0, 0.0, 0.0]
+        #return clamped_weights
+        return [1.0, 0.0, 0.0, 0.0, 0.0]
