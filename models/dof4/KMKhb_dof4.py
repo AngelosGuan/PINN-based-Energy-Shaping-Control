@@ -34,34 +34,59 @@ class MLP(nn.Module):
             nn.LayerNorm(self.HIDDEN_WIDTH),
             nn.Tanh(),
             nn.Linear(self.HIDDEN_WIDTH, self.OUTPUT_DIM),
-            nn.Tanh()
+            #nn.Tanh()
             )
         self._initialize_weights()
 
+    # def forward(self, x):
+    #     """
+    #     Input:
+    #         x: [8] or [n,8]
+    #     Output:
+    #         K: [4,4] or [n,4,4]
+    #     """
+    #     unbatched = False
+    #     if x.ndim == 1:
+    #         x = x.unsqueeze(0)  
+    #         unbatched = True
+
+    #     N_x = self.model(x)  
+
+    #     alpha_x = torch.sum(x**2, dim=-1, keepdim=True)  
+    #     alpha_x = (alpha_x > 1e-6).float()  
+        
+
+    #     out = 1.0 + alpha_x * k_delta * N_x  
+
+    #     K = torch.diag_embed(out)  # [n,4,4]
+
+    #     if unbatched:
+    #         K = K.squeeze(0)  # [4,4]
+
+    #     return K
+
+    # try
     def forward(self, x):
-        """
-        Input:
-            x: [8] or [n,8]
-        Output:
-            K: [4,4] or [n,4,4]
-        """
         unbatched = False
         if x.ndim == 1:
-            x = x.unsqueeze(0)  
+            x = x.unsqueeze(0)
             unbatched = True
 
-        N_x = self.model(x)  
+        N_x = self.model(x)  # shape: [n,4]
 
-        alpha_x = torch.sum(x**2, dim=-1, keepdim=True)  
-        alpha_x = (alpha_x > 1e-6).float()  
+        # Soft masking based on x-norm
+        ep = 1e-6
+        x_norm2 = torch.sum(x**2, dim=-1, keepdim=True)
+        alpha_x = torch.sigmoid(100.0 * (x_norm2 - ep))  # shape: [n,1]
 
-        out = 1.0 + alpha_x * k_delta * N_x  
+        # Bounded shaping component (from sigmoid)
+        bounded_output = 0.6 * torch.sigmoid(N_x) - 0.3  # ∈ [−0.3, 0.3]
+        K_diag = 1.0 + alpha_x * bounded_output          # ∈ [0.7, 1.3] with alpha_x ≈ 1
 
-        K = torch.diag_embed(out)  # [n,4,4]
+        K = torch.diag_embed(K_diag)
 
         if unbatched:
-            K = K.squeeze(0)  # [4,4]
-
+            K = K.squeeze(0)
         return K
 
     # def project_positive_definite(self, M_hat, λ_min=1e-3):
