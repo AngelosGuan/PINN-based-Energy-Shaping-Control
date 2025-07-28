@@ -64,14 +64,14 @@ class MLP(nn.Module):
 
         return K
 
-    def project_positive_definite(self, M_hat, λ_min=1e-3):
-        """
-        Project shaped mass matrix to ensure it is positive definite
-        """
-        eigvals, eigvecs = torch.linalg.eigh(M_hat)
-        eigvals_clamped = torch.clamp(eigvals, min=λ_min)
-        M_hat_safe = eigvecs @ torch.diag_embed(eigvals_clamped) @ eigvecs.transpose(-2, -1)
-        return M_hat_safe
+    # def project_positive_definite(self, M_hat, λ_min=1e-3):
+    #     """
+    #     Project shaped mass matrix to ensure it is positive definite
+    #     """
+    #     eigvals, eigvecs = torch.linalg.eigh(M_hat)
+    #     eigvals_clamped = torch.clamp(eigvals, min=λ_min)
+    #     M_hat_safe = eigvecs @ torch.diag_embed(eigvals_clamped) @ eigvecs.transpose(-2, -1)
+    #     return M_hat_safe
 
 
     def calculate_M(self, X):
@@ -130,8 +130,9 @@ class MLP(nn.Module):
         K = self.forward(x)       # [n,8,8] or [8,8]
 
         # construct shaped mass matrix using forward output K and mass matrix M
-        M_hat = K.transpose(-2, -1) @ M @ K  # [n,8,8] or [8,8]
-        M_hat = self.project_positive_definite(M_hat)
+        M_hat = K @ M @ K  # [n,8,8] or [8,8]
+        # K transpose = K for diagonal matrix
+        #M_hat = self.project_positive_definite(M_hat)
         
         return M_hat
 

@@ -7,35 +7,33 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def custom_inverse(M):
-    return torch.linalg.pinv(M)
+    cond_threshold = 1e4
+    epsilon = 1e-2
+
+    is_batched = M.dim() == 3
+
+    if not is_batched:
+        M = M.unsqueeze(0)  # → (1, d, d)
+
+    B, d, _ = M.shape
+
+    conds = torch.linalg.cond(M)  # (B,)
+    conds = conds.unsqueeze(-1).unsqueeze(-1)  # shape: (B, 1, 1) for broadcasting
+
+    I = torch.eye(d, device=M.device).expand(B, d, d)
     
-    # cond_threshold = 1e4
-    # epsilon = 1e-2
+    # mask: shape (B, 1, 1), value 1.0 if ill-conditioned, 0.0 if not
+    mask = (conds > cond_threshold).float()
 
-    # is_batched = M.dim() == 3
+    M_reg = M + mask * (epsilon * I)
 
-    # if not is_batched:
-    #     M = M.unsqueeze(0)  # → (1, d, d)
+    result = torch.linalg.pinv(M_reg)
 
-    # B, d, _ = M.shape
+    if not is_batched:
+        result = result.squeeze(0)  # back to (d, d)
 
-    # conds = torch.linalg.cond(M)  # (B,)
-    # conds = conds.unsqueeze(-1).unsqueeze(-1)  # shape: (B, 1, 1) for broadcasting
-
-    # I = torch.eye(d, device=M.device).expand(B, d, d)
-    
-    # # mask: shape (B, 1, 1), value 1.0 if ill-conditioned, 0.0 if not
-    # mask = (conds > cond_threshold).float()
-
-    # M_reg = M + mask * (epsilon * I)
-
-    # result = torch.linalg.pinv(M_reg)
-
-    # if not is_batched:
-    #     result = result.squeeze(0)  # back to (d, d)
-
-    # return result
-    
+    return result
+    #return torch.linalg.pinv(M)
     #return damped_pseudo_inverse(M)
 
 # def custom_inverse(M, epsilon=1e-3, cond_threshold=1e4):
@@ -85,7 +83,12 @@ class customLoss:
             M = model.calculate_M(x)
             M_hat = model.calculate_M_hat(x)
             M_inv = custom_inverse(M)
-            M_hat_inv =  custom_inverse(M_hat)
+            #M_hat_inv =  custom_inverse(M_hat)
+            K = model.forward(x)
+            ks = torch.diagonal(K)
+            ks_inv = 1.0 / ks
+            K_inv = torch.diag(ks_inv)
+            M_hat_inv = K_inv @ M_inv @ K_inv
 
             Cqdot = dynamics.calculate_Cqdot(model.calculate_M, x)
             Chatqdot = dynamics.calculate_Cqdot(model.calculate_M_hat, x)
@@ -115,9 +118,14 @@ class customLoss:
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+        #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
-        # TODO: make this batch safe
+        K = model.forward(x)
+        ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
+        ks_inv = 1.0 / ks
+        K_inv = torch.diag_embed(ks_inv)
+        M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
         Chatqdot = dynamics.calculate_Cqdot(model.calculate_M_hat, X)  # (B, 4, 1)
 
@@ -156,7 +164,13 @@ class customLoss:
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+        #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+
+        K = model.forward(x)
+        ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
+        ks_inv = 1.0 / ks
+        K_inv = torch.diag_embed(ks_inv)
+        M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
 
         # TODO: make this batch safe
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
