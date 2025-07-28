@@ -120,7 +120,7 @@ class customLoss:
         M_inv = custom_inverse(M)        # (B, 4, 4)
         #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
-        K = model.forward(x)
+        K = model.forward(X)
         ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
         ks_inv = 1.0 / ks
         K_inv = torch.diag_embed(ks_inv)
@@ -166,7 +166,7 @@ class customLoss:
         M_inv = custom_inverse(M)        # (B, 4, 4)
         #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
-        K = model.forward(x)
+        K = model.forward(X)
         ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
         ks_inv = 1.0 / ks
         K_inv = torch.diag_embed(ks_inv)
