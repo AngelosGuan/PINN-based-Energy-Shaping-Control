@@ -3,7 +3,7 @@ import core.plot as plot
 import core.sampling as sampling
 import core.training as training
 import core.utils as utils
-import models.dof4.KMKhb_dof4 as models
+import models.dof4.KMKhb_fourier_dof4 as models
 import models.dof4.loss_dof4 as loss
 import models.dof4.dynamics as dynamics
 

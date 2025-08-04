@@ -15,7 +15,7 @@ BATCH_SIZE = 16
 RESIDUAL_INV = 2
 
 # hidden layer width
-HIDDEN_WIDTH = 8192
+HIDDEN_WIDTH = 4196
 
 # neural network depth
 NUM_DEPTH = 2
