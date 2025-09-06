@@ -28,3 +28,6 @@ num_train_data = 10000
 
 # test size
 testset_size = 5000
+
+# adaptive sampling
+SAMPLE_EVERY = 10

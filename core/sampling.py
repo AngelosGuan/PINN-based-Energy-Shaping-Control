@@ -130,3 +130,97 @@ def uniform_sampling(n_samples=100, input_dim=4, device='cpu',
         full_samples[:, idx] = lower_bounds[idx]  # or upper_bounds[idx], same value
 
     return torch.tensor(full_samples, dtype=torch.float32, device=device, requires_grad=False)
+
+
+########################################################################
+# adaptive sampling (RAD-D algorithm, partial replacement determined by replace_frac)
+# following DeepXDE's implementation
+# https://arxiv.org/pdf/2104.12325
+# https://arxiv.org/pdf/2207.10289
+class AdaptiveSamplerRAD:
+    def __init__(
+        self,
+        residual_fn,                 # callable(model, X)->[N] pointwise residual
+        proposal_sampler,            # callable(n)->[n, dim] valid domain samples
+        replace_frac=0.25,           # fraction of interior to replace
+        pool_mult=8,                 # pool size = replace_count * pool_mult
+        k=1.0,                       # RAD exponent (paper's k ≥ 0)
+        c=1.0,                       # RAD mixing coeff (paper's c ≥ 0)
+        batch_size=32768,                 # score candidates in chunks
+        eps=1e-12
+    ):
+        self.residual_fn = residual_fn
+        self.proposal_sampler = proposal_sampler
+        self.replace_frac = replace_frac
+        self.pool_mult = pool_mult
+        self.k = float(k)
+        self.c = float(c)
+        self.batch_size = int(batch_size)
+        self.eps = eps
+
+    @torch.no_grad()
+    def compute_pmf(self, model, X_pool):
+
+        # compute residuals in batches defined by self.batch_size 
+        N = X_pool.shape[0]
+        rks = []
+
+        for i in range(0, N, self.batch_size):
+            X_batch = X_pool[i:i+self.batch_size]
+            residual_batch = self.residual_fn(model, X_batch).clamp_min_(0.0)
+            if abs(self.k)<1e-12:
+                r_k = torch.ones_like(residual_batch)
+            else:
+                r_k = (residual_batch + self.eps).pow(self.k)
+            rks.append(r_k)
+
+        rks = torch.cat(rks, dim=0)
+        Ek = rks.mean()                             # MC approx of E[ε^k] over pool
+
+        scores = rks + self.c * Ek                  # paper's ε^k + c E[ε^k]
+
+        if torch.all(scores <= 0) or not torch.isfinite(scores).all():
+            scores = torch.ones_like(scores)
+        
+        Z = scores.sum()
+        if Z==0.0:
+            raise ValueError("Dividing by zero in AdaptiveSamplerRAD.compute_pmf")
+        return scores / Z 
+
+    @torch.no_grad()
+    def step(self, model, X):
+        # assume X is already on device
+        N, d = X.shape
+
+        # how many to replace + pool size
+        n_replace = max(1, int(self.replace_frac * N))    # self.replace_frac * N
+        n_pool = max(n_replace + 1, n_replace * self.pool_mult)   # n_replace * self.pool_mult
+
+        # draw candidates and pmf
+        X_pool = self.proposal_sampler(n_pool)  # [n_pool, d]
+        pmf = self.compute_pmf(model, X_pool)
+
+        # sample without replacement and splice
+        chosen = torch.multinomial(pmf, num_samples=n_replace, replacement=False)
+        X_new = X_pool[chosen]
+        victims = torch.randperm(N, device=X.device)[:n_replace]
+        
+        X_updated = X.clone()
+        X_updated[victims] = X_new
+        return X_updated
+
+########################################################################
+# helper function to translate sampling function to the proposal sampler function requred for RAD
+def make_proposal(sampler_func, lower_bounds, upper_bounds, device, input_dim):
+    def proposal_sampler(n):
+        '''
+        input: n - number of samples to generate
+        '''
+        return sampler_func(
+            n_samples=n,
+            input_dim=input_dim,
+            device=device,
+            lower_bounds=lower_bounds,
+            upper_bounds=upper_bounds,
+        )
+    return proposal_sampler

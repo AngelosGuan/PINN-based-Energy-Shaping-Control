@@ -2,7 +2,9 @@ import numpy as np
 import torch
 import sys
 from core.utils import compute_gradient_norm, CosineAnnealingWarmupRestarts, gradients_all_zero
-from configs.config_dof8 import MAX_GRAD
+import core.sampling as sampling 
+import models.dof4.dynamics as dynamics
+from configs.config_dof4 import MAX_GRAD, SAMPLE_EVERY
 import traceback
 
 
@@ -60,27 +62,76 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
     num_losses  = 6
     losses_epoch = [[] for _ in range(num_losses)]
 
+    ############################################
+    # build proposal sampler and RAD sampler
+    lhs_proposal = sampling.make_proposal(sampling.lhs_sampling, dynamics.LOWER_BOUNDS, dynamics.UPPER_BOUNDS, device, model.INPUT_DIM)
+
+    # replace less more frequently early
+    adaptive_sampler_early = sampling.AdaptiveSamplerRAD(
+        residual_fn = loss_funcs.residual_pointwise,                
+        proposal_sampler = lhs_proposal,
+        replace_frac=0.1,           
+        pool_mult=8,                 
+        k=1.0,                       
+        c=1.0,                       
+        batch_size=32768,                
+        eps=1e-12
+    )
+
+    # replace more less frequently late
+    adaptive_sampler_late = sampling.AdaptiveSamplerRAD(
+        residual_fn = loss_funcs.residual_pointwise,                
+        proposal_sampler = lhs_proposal,
+        replace_frac=0.25,           
+        pool_mult=8,                 
+        k=1.0,                       
+        c=1.0,                       
+        batch_size=32768,                
+        eps=1e-12
+    )
+
+
 
     # ADAM training loop
     for ep in range(num_epochs_adam):
         try:
             # for last two epochs in adam jiggle learn rate
-            if ep == num_epochs_adam - 2:
+            if num_epochs_adam >= 50 and ep == num_epochs_adam - 2:
                 for param_group in adam.param_groups:
                     param_group['lr'] = lr_adam * 0.1  # reduce LR by factor of 10
 
                         # for last two epochs in adam jiggle learn rate
-            if ep < 10:
-                for param_group in adam.param_groups:
-                    param_group['lr'] = lr_adam * 10  # increase LR by factor of 10
-            if ep == 10:
-                for param_group in adam.param_groups:
-                    param_group['lr'] = lr_adam  # normal learn rate
+            # if ep < 10:
+            #     for param_group in adam.param_groups:
+            #         param_group['lr'] = lr_adam * 10  # increase LR by factor of 10
+            # if ep == 10:
+            #     for param_group in adam.param_groups:
+            #         param_group['lr'] = lr_adam  # normal learn rate
 
             
             train_loss = []
             loss_lists = [[] for _ in range(num_losses)]
             minibatch_grad_norms = []
+
+
+            #########################
+            # adaptive sampling
+            if ep < 20:
+                # early phase (first 20 epoch, resample every 2 epoch)
+                if (ep+1)%2 == 0:
+                    # resample with adaptive sampling
+                    X = adaptive_sampler_early.step(model, X)
+                    # setup dataloader
+                    dataset = torch.utils.data.TensorDataset(X)
+                    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+            else:
+                # late phase (resample every SAMPLE_EVERY epoch)
+                if (ep+1) % SAMPLE_EVERY:
+                    X = adaptive_sampler_late.step(model, X)
+                    # setup dataloader
+                    dataset = torch.utils.data.TensorDataset(X)
+                    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        
 
             # using minibatch
             for (batch,) in dataloader:
@@ -139,6 +190,8 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 print(f"Error at epoch {ep+1}: {e}", file=f)
                 print(traceback.format_exc(), file=f)
             sys.exit(1)
+
+
 
     # L-BFGS training loop
     for ep in range(num_epochs_bfgs):

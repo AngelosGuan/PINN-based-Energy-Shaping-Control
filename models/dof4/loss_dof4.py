@@ -152,7 +152,10 @@ class customLoss:
         return L1_mean, L1_mean/(torch.max(L1s) + 1e-8)
 
     ##################################
-    # TODO: add adaptive sampling
+    # pointwise residual for adaptive sampling (RAD)
+    @torch.no_grad()
+    def residual_pointwise(self, model, X):
+        return self.get_PDE_Loss_trajectory_batch(model, X)
 
     ##################################
     # modify this to compute everything in one go
