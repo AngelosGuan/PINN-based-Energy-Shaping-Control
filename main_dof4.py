@@ -21,9 +21,6 @@ result_path = "results"
 ########################################################################
 if __name__ == "__main__":
 
-    # set random seed for reproductiveness
-    utils.set_seed(config.SEED)
-
     # parse command line argument for gpu and cpu resourse
     parser = argparse.ArgumentParser(description="Training for 4DOF dynamic model")
     parser.add_argument(
@@ -35,6 +32,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model_name", type=str, default="resMLP_dof4", help="Folder name to store the output within results folder."
     )
+    parser.add_argument(
+        "--seed", type=int, default=config.SEED, help="Seed used for random algorithms."
+    )
 
     args, _ = parser.parse_known_args()
 
@@ -43,6 +43,10 @@ if __name__ == "__main__":
 
     num_epochs_adam = args.num_epoch_adam
     num_epochs_bfgs = args.num_epoch_bfgs
+    seed = args.seed
+
+    # set random seed for reproductiveness
+    utils.set_seed(seed)
 
     # get absolute storage path
     current_dir = os.getcwd()
