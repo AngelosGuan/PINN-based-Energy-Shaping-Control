@@ -116,7 +116,7 @@ def set_seed(seed):
     if torch.cuda.is_available():
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-    torch.use_deterministic_algorithms(True, warn_only=not strict) 
+    torch.use_deterministic_algorithms(True) 
 
     # set seeds
     random.seed(seed)

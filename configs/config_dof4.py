@@ -30,4 +30,9 @@ num_train_data = 10000
 testset_size = 5000
 
 # adaptive sampling
-SAMPLE_EVERY = 10
+SAMPLE_EVERY = 25
+REPLACE_RATE = 0.25
+
+EARLY_STAGE_LEN = 30
+EARLY_REPLACE = 0.1
+SAMPLE_EVERY_EARLY = 4
