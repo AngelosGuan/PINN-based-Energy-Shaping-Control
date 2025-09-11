@@ -108,15 +108,19 @@ def set_seed(seed):
 
     # set CUDA environment variables (in code)
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
-    os.environ.setdefault("OMP_NUM_THREADS", "4")
-    os.environ.setdefault("MKL_NUM_THREADS", "4")
+    os.environ["PYTHONHASHSEED"] = "0"
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
+    os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 
     # Global determinism switches
+    torch.use_deterministic_algorithms(True) 
     if torch.cuda.is_available():
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-    torch.use_deterministic_algorithms(True) 
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
+    
 
     # set seeds
     random.seed(seed)
