@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import random
 from scipy.stats import qmc
+import configs.config_dof4 as config
 
 ########################################################################
 # helpers
@@ -39,7 +40,8 @@ def lhs_sampling(n_samples=5000, input_dim=4, device='cpu',
     if active_dim == 0:
         raise ValueError("All dimensions are fixed; no active dimensions to sample.")
 
-    sampler = qmc.LatinHypercube(d=active_dim)
+    # needs explicit seeding to set deterministic
+    sampler = qmc.LatinHypercube(d=active_dim, seed=config.SEED)
     active_samples = sampler.random(n=n_samples)
 
     # Scale active samples
@@ -77,7 +79,7 @@ def sobol_sampling(n_samples=4096, input_dim=4, device='cpu',
         raise ValueError("All dimensions are fixed; no active dimensions to sample.")
 
     # Sample only over active dimensions
-    sampler = qmc.Sobol(d=active_dim, scramble=True)
+    sampler = qmc.Sobol(d=active_dim, scramble=True, seed=config.SEED)
     active_samples = sampler.random(n=n_samples)
 
     # Scale active samples
@@ -116,7 +118,9 @@ def uniform_sampling(n_samples=100, input_dim=4, device='cpu',
         raise ValueError("All dimensions are fixed; no active dimensions to sample.")
 
     # Sample only active dimensions
-    active_samples = np.random.uniform(
+    # needs to fix local generator with seed
+    rng = np.random.default_rng(config.SEED)
+    active_samples = rng.uniform(
         low=lower_bounds[active_indices],
         high=upper_bounds[active_indices],
         size=(n_samples, active_dim)
@@ -201,7 +205,9 @@ class AdaptiveSamplerRAD:
         pmf = self.compute_pmf(model, X_pool)
 
         # sample without replacement and splice
-        chosen = torch.multinomial(pmf, num_samples=n_replace, replacement=False)
+        # set seed
+        rng = torch.Generator(device=X.device).manual_seed(config.SEED)
+        chosen = torch.multinomial(pmf, num_samples=n_replace, replacement=False, generator=rng)
         X_new = X_pool[chosen]
         victims = torch.randperm(N, device=X.device)[:n_replace]
         
