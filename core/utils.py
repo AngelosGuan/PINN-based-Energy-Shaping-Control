@@ -107,10 +107,10 @@ def load_data(data_path):
 def set_seed(seed):
 
     # set CUDA environment variables (in code)
-    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"   # required for deterministic cuBLAS
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
     os.environ["PYTHONHASHSEED"] = "0"
-    os.environ.setdefault("OMP_NUM_THREADS", "1")
-    os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 
     # Global determinism switches
