@@ -292,4 +292,6 @@ def calculate_weights(loss_funcs, model, X, print_path=None):
                       f"L7: {pos_def_loss:.6f}", file=f)
 
         #return clamped_weights
-        return [1.0, 0.0, 0.0, 0.0, 0.0]
+        # trial 1: constant weight
+        # W1, W2, W4, W5, W6
+        return [1.0/400, 1.0/763412, 1.0, 1.0, 1.0/470]

@@ -4,7 +4,7 @@ import sys
 from core.utils import compute_gradient_norm, CosineAnnealingWarmupRestarts, gradients_all_zero
 import core.sampling as sampling 
 import models.dof4.dynamics as dynamics
-from configs.config_dof4 import MAX_GRAD, SAMPLE_EVERY
+from configs.config_dof4 import MAX_GRAD, SAMPLE_EVERY, REPLACE_RATE, EARLY_STAGE_LEN, EARLY_REPLACE, SAMPLE_EVERY_EARLY
 import traceback
 
 
@@ -70,7 +70,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
     adaptive_sampler_early = sampling.AdaptiveSamplerRAD(
         residual_fn = loss_funcs.residual_pointwise,                
         proposal_sampler = lhs_proposal,
-        replace_frac=0.1,           
+        replace_frac=EARLY_REPLACE,           
         pool_mult=8,                 
         k=1.0,                       
         c=1.0,                       
@@ -82,7 +82,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
     adaptive_sampler_late = sampling.AdaptiveSamplerRAD(
         residual_fn = loss_funcs.residual_pointwise,                
         proposal_sampler = lhs_proposal,
-        replace_frac=0.25,           
+        replace_frac=REPLACE_RATE,           
         pool_mult=8,                 
         k=1.0,                       
         c=1.0,                       
@@ -116,9 +116,9 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
 
             #########################
             # adaptive sampling
-            if ep < 20:
+            if ep < EARLY_STAGE_LEN:
                 # early phase (first 20 epoch, resample every 2 epoch)
-                if (ep+1)%2 == 0:
+                if (ep+1)%SAMPLE_EVERY_EARLY == 0:
                     # resample with adaptive sampling
                     X = adaptive_sampler_early.step(model, X)
                     # setup dataloader
