@@ -258,41 +258,41 @@ class customLoss:
 
 ########################################################################
 # compute weights
-# def calculate_weights(loss_funcs, model, X, print_path=None):
-#     # constants
-#     return [1.0/400, 1.0/763412, 1.0, 1.0, 1.0/470]
+def calculate_weights(loss_funcs, model, X, print_path=None):
+    # constants
+    return [1.0/400, 1.0/763412, 1.0, 1.0, 1.0/470]
 
 ########################################################################
 # compute weights
-def calculate_weights(loss_funcs, model, X, print_path=None):
-    with torch.no_grad():
-        weights = [1.0, 1.0, 1.0, 1.0, 1.0]
-        _, [residual_loss, control_loss, deviation_loss, eig_loss, sparse_loss, pos_def_loss] = loss_funcs.total_loss(model, X, weights)
+# def calculate_weights(loss_funcs, model, X, print_path=None):
+#     with torch.no_grad():
+#         weights = [1.0, 1.0, 1.0, 1.0, 1.0]
+#         _, [residual_loss, control_loss, deviation_loss, eig_loss, sparse_loss, pos_def_loss] = loss_funcs.total_loss(model, X, weights)
 
-        eps = 1e-10
-        weights = np.array([
-            1.0 / (1.0 + np.log(1.0 + residual_loss + eps)),
-            1.0 / (1.0 + np.log(1.0 + control_loss + eps)),
-            1.0 / (1.0 + np.log(1.0 + deviation_loss + eps)),
-            1.0 / (1.0 + np.log(1.0 + eig_loss + eps)),
-            1.0 / (1.0 + np.log(1.0 + sparse_loss + eps))
-        ])
-        clamped_weights = np.clip(weights, a_min=0.1, a_max=10.0)
+#         eps = 1e-10
+#         weights = np.array([
+#             1.0 / (1.0 + np.log(1.0 + residual_loss + eps)),
+#             1.0 / (1.0 + np.log(1.0 + control_loss + eps)),
+#             1.0 / (1.0 + np.log(1.0 + deviation_loss + eps)),
+#             1.0 / (1.0 + np.log(1.0 + eig_loss + eps)),
+#             1.0 / (1.0 + np.log(1.0 + sparse_loss + eps))
+#         ])
+#         clamped_weights = np.clip(weights, a_min=0.1, a_max=10.0)
 
-        eps = 1e-10
-        clamped_weights = np.array([
-            1.0 / (residual_loss + eps),
-            1.0 / (control_loss + eps),
-            1.0 / (deviation_loss + eps),
-            1.0 / (eig_loss + eps),
-            1.0 / (sparse_loss + eps)
-        ])
+#         eps = 1e-10
+#         clamped_weights = np.array([
+#             1.0 / (residual_loss + eps),
+#             1.0 / (control_loss + eps),
+#             1.0 / (deviation_loss + eps),
+#             1.0 / (eig_loss + eps),
+#             1.0 / (sparse_loss + eps)
+#         ])
 
-        # Optional debug printing
-        if print_path is not None:
-            with open(print_path, "a") as f:
-                print(f"L1: {residual_loss:.6f}, L2: {control_loss:.6f}, "
-                      f"L4: {deviation_loss:.6f}, L5: {eig_loss:.6f}, L6: {sparse_loss:.6f}, "
-                      f"L7: {pos_def_loss:.6f}", file=f)
+#         # Optional debug printing
+#         if print_path is not None:
+#             with open(print_path, "a") as f:
+#                 print(f"L1: {residual_loss:.6f}, L2: {control_loss:.6f}, "
+#                       f"L4: {deviation_loss:.6f}, L5: {eig_loss:.6f}, L6: {sparse_loss:.6f}, "
+#                       f"L7: {pos_def_loss:.6f}", file=f)
 
-        return clamped_weights
+#         return clamped_weights
