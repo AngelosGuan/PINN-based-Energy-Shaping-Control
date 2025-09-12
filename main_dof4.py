@@ -44,6 +44,7 @@ if __name__ == "__main__":
     num_epochs_adam = args.num_epoch_adam
     num_epochs_bfgs = args.num_epoch_bfgs
     seed = args.seed
+    config.SEED = seed
 
     # set random seed for reproductiveness
     utils.set_seed(seed)
