@@ -174,7 +174,7 @@ def load_checkpoint(model, optimizer, storage_path, scheduler=None, device='cpu'
     filepath = os.path.abspath(os.path.join(storage_path, filename))
     checkpoint = torch.load(filepath, map_location=device)
 
-    model.load_state_dict(checkpoint['model_state_dict']).to(device)
+    model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     if scheduler is not None and 'scheduler_state_dict' in checkpoint:
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
