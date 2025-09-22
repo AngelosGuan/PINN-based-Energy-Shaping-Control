@@ -14,7 +14,7 @@ def initialize_adam_optimizer(model, lr, l2_regu):
     adam = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=l2_regu)
     scheduler = CosineAnnealingWarmupRestarts(
         adam,
-        first_cycle_steps=WARM_UP,
+        first_cycle_steps=WARM_UP+1,
         cycle_mult=1.0,
         max_lr=lr,
         min_lr=lr,
