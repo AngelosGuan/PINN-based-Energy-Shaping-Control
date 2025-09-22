@@ -172,7 +172,7 @@ def save_checkpoint(model, optimizer, epoch, X, storage_path, scheduler=None):
 def load_checkpoint(model, optimizer, storage_path, scheduler=None, device='cpu'):
     filename = f"checkpoint.pth"
     filepath = os.path.abspath(os.path.join(storage_path, filename))
-    checkpoint = torch.load(filepath, map_location=device)
+    checkpoint = torch.load(filepath, map_location=device, weights_only=False)
 
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
