@@ -4,7 +4,7 @@ import sys
 from core.utils import compute_gradient_norm, CosineAnnealingWarmupRestarts, gradients_all_zero
 import core.sampling as sampling 
 import models.dof4.dynamics as dynamics
-from configs.config_dof4 import MAX_GRAD, SAMPLE_EVERY, REPLACE_RATE, EARLY_STAGE_LEN, EARLY_REPLACE, SAMPLE_EVERY_EARLY
+from configs.config_dof4 import MAX_GRAD, SAMPLE_EVERY, REPLACE_RATE, EARLY_STAGE_LEN, EARLY_REPLACE, SAMPLE_EVERY_EARLY, WARM_UP
 import traceback
 
 
@@ -14,11 +14,11 @@ def initialize_adam_optimizer(model, lr, l2_regu):
     adam = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=l2_regu)
     scheduler = CosineAnnealingWarmupRestarts(
         adam,
-        first_cycle_steps=1000,
+        first_cycle_steps=WARM_UP,
         cycle_mult=1.0,
         max_lr=lr,
-        min_lr=1e-8,
-        warmup_steps=20,
+        min_lr=lr,
+        warmup_steps=WARM_UP,
         gamma=1.0
     )
     return adam, scheduler
@@ -164,8 +164,9 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
             for i, loss_list in enumerate(loss_lists):
                 losses_epoch[i].append(np.mean(loss_list))
 
-            # Update learning rate
-            scheduler.step()
+            # Update learning rate only during warm up phase
+            if ep < WARM_UP:
+                scheduler.step()
 
             # compute grad norm
             avg_grad_norm  = np.mean(minibatch_grad_norms)
@@ -248,4 +249,4 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 print(f"Error at epoch {ep+num_epochs_adam+1}: {e}", file=f)
                 print(traceback.format_exc(), file=f)
             sys.exit(1)
-    return train_loss_epoch, grad_norm_epoch, losses_epoch
+    return train_loss_epoch, grad_norm_epoch, losses_epoch, adam, X.detach().cpu()

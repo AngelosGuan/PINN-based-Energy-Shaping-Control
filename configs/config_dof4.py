@@ -1,6 +1,7 @@
 SEED = 60
 
 # adam 
+WARM_UP = 20
 lr_adam = 5e-4
 l2_regu_adam = 1e-7
 

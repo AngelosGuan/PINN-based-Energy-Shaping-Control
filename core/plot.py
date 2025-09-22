@@ -149,3 +149,41 @@ def plot_comparison_surfaces(data_list, plot_title, xlabel, ylabel, zlabel, file
     plt.close()
     return
 
+
+def save_checkpoint(model, optimizer, epoch, X, storage_path, scheduler=None):
+    """
+    Save model + optimizer (+ scheduler) state_dicts to a .pth checkpoint.
+    """
+    filename = f"checkpoint.pth"
+    filepath = os.path.abspath(os.path.join(storage_path, filename))
+    checkpoint = {
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'train_data': X
+    }
+    if scheduler is not None:
+        checkpoint['scheduler_state_dict'] = scheduler.state_dict()
+
+    torch.save(checkpoint, filepath)
+    print(f"Checkpoint saved to: {filepath}")
+    return filepath
+
+def load_checkpoint(model, optimizer, storage_path, scheduler=None, device='cpu'):
+    filename = f"checkpoint.pth"
+    filepath = os.path.abspath(os.path.join(storage_path, filename))
+    checkpoint = torch.load(filepath, map_location=device)
+
+    model.load_state_dict(checkpoint['model_state_dict']).to(device)
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    if scheduler is not None and 'scheduler_state_dict' in checkpoint:
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+
+    # restore training data to desired device
+    X = checkpoint['train_data'].to(device, non_blocking=True)
+
+    epoch = checkpoint.get('epoch', 0)
+    print(f"Checkpoint loaded from: {filepath}, at epoch {epoch}")
+    return epoch, X
+
+
