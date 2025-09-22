@@ -96,9 +96,9 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
     for ep in range(num_epochs_adam):
         try:
             # for last two epochs in adam jiggle learn rate
-            if num_epochs_adam >= 50 and ep == num_epochs_adam - 2:
-                for param_group in adam.param_groups:
-                    param_group['lr'] = lr_adam * 0.1  # reduce LR by factor of 10
+            # if num_epochs_adam >= 50 and ep == num_epochs_adam - 2:
+            #     for param_group in adam.param_groups:
+            #         param_group['lr'] = lr_adam * 0.1  # reduce LR by factor of 10
 
                         # for last two epochs in adam jiggle learn rate
             # if ep < 10:

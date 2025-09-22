@@ -14,7 +14,6 @@ import sys
 
 import numpy as np
 from core.utils import compute_gradient_norm
-from configs.config_dof4 import MAX_GRAD, SAMPLE_EVERY, REPLACE_RATE, EARLY_STAGE_LEN, EARLY_REPLACE, SAMPLE_EVERY_EARLY, WARM_UP
 import traceback
 
 result_path = "results"
@@ -72,6 +71,122 @@ if __name__ == "__main__":
     total_epoch, X = plot.load_checkpoint(model, adam, storage_path, device=device)
     
     # train with custom settings
+    ############################
+    # setup custom weights 
+    weights = [1.0, 1.0, 1.0, 1.0, 1.0]
+    resonly_weights = [1.0, 0.0, 0.0, 0.0, 0.0]
+    SAMPLE_EVERY = config.SAMPLE_EVERY
+    REPLACE_RATE = config.REPLACE_RATE
+    num_epochs_adam = 500
+
+    # train with custom schedule
+    ############################
+
+    # setup dataloader
+    dataset = torch.utils.data.TensorDataset(X)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+    # save losses for logging
+    train_loss_epoch = []
+    grad_norm_epoch = []
+    num_losses  = 6
+    losses_epoch = [[] for _ in range(num_losses)]
+
+    ############################################
+    # build proposal sampler and RAD sampler
+    lhs_proposal = sampling.make_proposal(sampling.lhs_sampling, dynamics.LOWER_BOUNDS, dynamics.UPPER_BOUNDS, device, model.INPUT_DIM)
+
+    # replace more less frequently late
+    adaptive_sampler_late = sampling.AdaptiveSamplerRAD(
+        residual_fn = loss_funcs.residual_pointwise,                
+        proposal_sampler = lhs_proposal,
+        replace_frac=REPLACE_RATE,           
+        pool_mult=8,                 
+        k=1.0,                       
+        c=1.0,                       
+        batch_size=32768,                
+        eps=1e-12
+    )
+
+    # ADAM training loop
+    for ep in range(num_epochs_adam):
+        try: 
+            train_loss = []
+            loss_lists = [[] for _ in range(num_losses)]
+            minibatch_grad_norms = []
+
+            #########################
+            # adaptive sampling
+            # late phase (resample every SAMPLE_EVERY epoch)
+            if (ep+1) % SAMPLE_EVERY:
+                X = adaptive_sampler_late.step(model, X)
+                # setup dataloader
+                dataset = torch.utils.data.TensorDataset(X)
+                dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+            # using minibatch
+            for (batch,) in dataloader:
+                batch = batch.to(device)
+                train_loss_batch, losses = loss_funcs.total_loss(model, batch, weights)
+                
+                # TODO: schedule gradient descent alteratively for different loss if needed or adjust learning rate
+                # backward prop
+                adam.zero_grad()
+                train_loss_batch.backward()
+                # log gradient norm for this batch
+                grad_norm = compute_gradient_norm(model)
+                minibatch_grad_norms.append(grad_norm)
+                adam.step()
+
+                train_loss.append(train_loss_batch.detach().cpu())
+                for i, loss_val in enumerate(losses):
+                    loss_lists[i].append(loss_val)
+
+                # clear GPU memory every minibatch to prevent overflow
+                del train_loss_batch, losses
+                torch.cuda.empty_cache()
+
+            # log losses of all the minibatches
+            train_loss_epoch.append(np.mean(train_loss))
+            for i, loss_list in enumerate(loss_lists):
+                losses_epoch[i].append(np.mean(loss_list))
+
+            # compute grad norm
+            avg_grad_norm  = np.mean(minibatch_grad_norms)
+            grad_norm_epoch.append(avg_grad_norm)
+
+            # print progress
+            if ep % 10 == 0 or ep == num_epochs_adam - 1:
+                with open(print_path, "a") as f:
+                    print(f"epoch: {total_epoch}, train loss: {np.mean(train_loss):.7f}, "
+                        f"grad norm: {avg_grad_norm:.7f}, " +", ".join([f"L{i+1}: {mean:.7f}" for i, mean in enumerate([losses_epoch[j][ep] for j in range(num_losses)])]), file=f)
+
+            del train_loss, loss_lists
+            torch.cuda.empty_cache()
+            # update current epoch
+            total_epoch += 1
+
+            # check for GPU memory leak
+            # with open(PRINT_PATH, "a") as f:
+            #     print(f"GPU Memory Allocated: {torch.cuda.memory_allocated() / 1e6} MB", file=f)
+            #     print(f"GPU Memory Cached: {torch.cuda.memory_reserved() / 1e6} MB", file=f)
+
+        except Exception as e:
+            with open(print_path, "a") as f:
+                print(f"Error at epoch {ep+1}: {e}", file=f)
+                print(traceback.format_exc(), file=f)
+            sys.exit(1)
+    [L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch] = losses_epoch
+    X = X.detach().cpu()
+
+
+
+
+
+
+
+
+    ###########################
 
 
     # print residual loss
@@ -96,4 +211,5 @@ if __name__ == "__main__":
 
     # save model
     plot.save_model_parameters(model, args.model_name, STORAGE_PATH)
-    plot.save_checkpoint(model, adam, total_epoch, STORAGE_PATH)
+    plot.save_checkpoint(model, adam, total_epoch, X, STORAGE_PATH)
+    plot.save_losses(STORAGE_PATH, total_epoch, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch)

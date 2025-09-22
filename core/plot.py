@@ -186,4 +186,32 @@ def load_checkpoint(model, optimizer, storage_path, scheduler=None, device='cpu'
     print(f"Checkpoint loaded from: {filepath}, at epoch {epoch}")
     return epoch, X
 
+def save_losses(storage_path, total_epoch, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch):
+    filename = f"losses.npz"
+    path = os.path.abspath(os.path.join(storage_path, filename))
+    np.savez_compressed(
+        path,
+        train_loss_epoch=np.array(train_loss_epoch),
+        grad_norm_epoch=np.array(grad_norm_epoch),
+        L1=np.array(L1_epoch),
+        L2=np.array(L2_epoch),
+        L3=np.array(L3_epoch),
+        L4=np.array(L4_epoch),
+        L5=np.array(L5_epoch),
+        L6=np.array(L6_epoch),
+        total_epoch=np.array([total_epoch], dtype=np.int32),
+    )
+
+def load_metrics_npz(path):
+    z = np.load(path, allow_pickle=False)
+    train_loss_epoch= z["train_loss_epoch"].tolist()
+    grad_norm_epoch  = z["grad_norm_epoch"].tolist()
+    L1_epoch  = z["L1"].tolist()
+    L2_epoch  = z["L2"].tolist()
+    L3_epoch  = z["L3"].tolist()
+    L4_epoch  = z["L4"].tolist()
+    L5_epoch  = z["L5"].tolist()
+    L6_epoch  = z["L6"].tolist()
+    total_epoch = z["total_epoch"][0]
+    return total_epoch, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch
 

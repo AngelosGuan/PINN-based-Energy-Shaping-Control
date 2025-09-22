@@ -120,4 +120,5 @@ if __name__ == "__main__":
     # save model
     plot.save_model_parameters(model, args.model_name, STORAGE_PATH)
     plot.save_checkpoint(model, adam, num_epochs_adam, X, STORAGE_PATH)
+    plot.save_losses(STORAGE_PATH, num_epochs_adam, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch)
 
