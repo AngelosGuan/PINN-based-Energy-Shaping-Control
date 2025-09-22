@@ -78,6 +78,7 @@ if __name__ == "__main__":
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
     num_epochs_adam = 1
+    batch_size = config.BATCH_SIZE
 
     # train with custom schedule
     ############################
