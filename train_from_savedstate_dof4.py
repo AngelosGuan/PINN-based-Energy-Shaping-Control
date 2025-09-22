@@ -77,7 +77,7 @@ if __name__ == "__main__":
     resonly_weights = [1.0, 0.0, 0.0, 0.0, 0.0]
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
-    num_epochs_adam = 500
+    num_epochs_adam = 1
 
     # train with custom schedule
     ############################
