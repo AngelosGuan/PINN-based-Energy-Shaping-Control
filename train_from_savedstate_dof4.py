@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
             # print progress
             if ep % 10 == 0 or ep == num_epochs_adam - 1:
-                with open(print_path, "a") as f:
+                with open(PRINT_PATH, "a") as f:
                     print(f"epoch: {total_epoch}, train loss: {np.mean(train_loss):.7f}, "
                         f"grad norm: {avg_grad_norm:.7f}, " +", ".join([f"L{i+1}: {mean:.7f}" for i, mean in enumerate([losses_epoch[j][ep] for j in range(num_losses)])]), file=f)
 
@@ -173,7 +173,7 @@ if __name__ == "__main__":
             #     print(f"GPU Memory Cached: {torch.cuda.memory_reserved() / 1e6} MB", file=f)
 
         except Exception as e:
-            with open(print_path, "a") as f:
+            with open(PRINT_PATH, "a") as f:
                 print(f"Error at epoch {ep+1}: {e}", file=f)
                 print(traceback.format_exc(), file=f)
             sys.exit(1)
