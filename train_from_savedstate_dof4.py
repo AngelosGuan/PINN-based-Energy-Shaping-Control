@@ -77,7 +77,8 @@ if __name__ == "__main__":
     resonly_weights = [1.0, 0.0, 0.0, 0.0, 0.0]
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
-    num_epochs_adam = 1
+    num_epochs_adam = 200
+    fixed_trainset_size = 2000
     batch_size = config.BATCH_SIZE
 
     # train with custom schedule
@@ -85,7 +86,7 @@ if __name__ == "__main__":
 
     # setup dataloader
     # add 10000 lhs sample
-    X_fixed = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X_fixed = sampling.lhs_sampling(n_samples=fixed_trainset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     train_set = torch.cat((X, X_fixed),dim=0)
     dataset = torch.utils.data.TensorDataset(train_set)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
