@@ -73,7 +73,7 @@ if __name__ == "__main__":
     # train with custom settings
     ############################
     # setup custom weights 
-    weights = [1.0, 1.0, 1.0, 1.0, 1.0]
+    weights = [1.0, 1.0/10000, 1.0/100, 1.0/100, 1.0/470]
     resonly_weights = [1.0, 0.0, 0.0, 0.0, 0.0]
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
@@ -84,7 +84,10 @@ if __name__ == "__main__":
     ############################
 
     # setup dataloader
-    dataset = torch.utils.data.TensorDataset(X)
+    # add 10000 lhs sample
+    X_fixed = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    train_set = torch.cat((X, X_fixed),dim=0)
+    dataset = torch.utils.data.TensorDataset(train_set)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
     # save losses for logging
@@ -122,7 +125,8 @@ if __name__ == "__main__":
             if (ep+1) % SAMPLE_EVERY:
                 X = adaptive_sampler_late.step(model, X)
                 # setup dataloader
-                dataset = torch.utils.data.TensorDataset(X)
+                train_set = torch.cat((X, X_fixed),dim=0)
+                dataset = torch.utils.data.TensorDataset(train_set)
                 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
             # using minibatch
