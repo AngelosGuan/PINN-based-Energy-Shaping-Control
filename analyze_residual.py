@@ -63,6 +63,8 @@ if __name__ == "__main__":
 
     # create model
     model = models.MLP().to(device)
+    # create optimizer
+    adam = torch.optim.AdamW(model.parameters(), lr=config.lr_adam, weight_decay=config.l2_regu_adam)
 
     # load checkpoint
     total_epoch, X = plot.load_checkpoint(model, adam, STORAGE_PATH, device=device)
