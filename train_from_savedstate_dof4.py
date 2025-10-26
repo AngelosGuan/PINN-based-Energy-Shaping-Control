@@ -72,6 +72,7 @@ if __name__ == "__main__":
     
     # train with custom settings
     ############################
+    max_error_threshold = 0.1
     # setup custom weights 
     weights = [1.0, 0.5, 1.0/10000, 1.0/100, 1.0/100, 1.0/470]
     resonly_weights = [1.0, 0.0, 0.0, 0.0, 0.0]
@@ -92,13 +93,11 @@ if __name__ == "__main__":
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
     # gather a fixed max error set
-    # largest 500 values
-    num_top = 500 
-    residual_over_X = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed)
-    # get indices of largest residuals
-    topk_vals, topk_idx = torch.topk(residual_flat, k=num_top)
-    # select corresponding X points
-    max_error_set = X_fixed[topk_idx].clone()
+    res_fixed = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed).view(-1)
+    res_adapt = loss_funcs.get_PDE_Loss_trajectory(model, X).view(-1)
+
+    mask_f, mask_a = res_fixed > max_error_threshold, res_adapt > max_error_threshold
+    max_error_set = torch.cat([X_fixed[mask_f], X[mask_a]]).clone().to(device)
     
 
     # save losses for logging
