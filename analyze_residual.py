@@ -142,5 +142,5 @@ if __name__ == "__main__":
 
 
     # print residual loss
-    plot.plot_loss_curve(residual_flat.cpu(), plot_title="Residual Loss over fixed set", xlabel = "data point", ylabel = "Residual Loss", start_idx=0, filename = "fixed.png", file_path = STORAGE_PATH)
-    plot.plot_loss_curve(residual_flat_adapt.cpu(), plot_title="Residual Loss over adaptive set", xlabel = "data point", ylabel = "Residual Loss", start_idx=0, filename = "adaptive.png", file_path = STORAGE_PATH)
+    plot.plot_loss_curve(residual_flat.detach().cpu(), plot_title="Residual Loss over fixed set", xlabel = "data point", ylabel = "Residual Loss", start_idx=0, filename = "fixed.png", file_path = STORAGE_PATH)
+    plot.plot_loss_curve(residual_flat_adapt.detach().cpu(), plot_title="Residual Loss over adaptive set", xlabel = "data point", ylabel = "Residual Loss", start_idx=0, filename = "adaptive.png", file_path = STORAGE_PATH)
