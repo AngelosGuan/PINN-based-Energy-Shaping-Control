@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
     # largest 500 values
     num_top = 500 
-    residual_over_adapt = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed)
+    residual_over_adapt = loss_funcs.get_PDE_Loss_trajectory(model, X)
     # flatten residual in case it's (N,1)
     residual_flat_adapt = residual_over_adapt.view(-1)
     # get indices of largest residuals
@@ -142,5 +142,5 @@ if __name__ == "__main__":
 
 
     # print residual loss
-    plot.plot_loss_curve(residual_flat, plot_title="Residual Loss over fixed set", xlabel = "data point", ylabel = "Residual Loss", start_idx=0, filename = "fixed.png", file_path = STORAGE_PATH)
-    plot.plot_loss_curve(residual_flat_adapt, plot_title="Residual Loss over adaptive set", xlabel = "data point", ylabel = "Residual Loss", start_idx=0, filename = "adaptive.png", file_path = STORAGE_PATH)
+    plot.plot_loss_curve(residual_flat.cpu(), plot_title="Residual Loss over fixed set", xlabel = "data point", ylabel = "Residual Loss", start_idx=0, filename = "fixed.png", file_path = STORAGE_PATH)
+    plot.plot_loss_curve(residual_flat_adapt.cpu(), plot_title="Residual Loss over adaptive set", xlabel = "data point", ylabel = "Residual Loss", start_idx=0, filename = "adaptive.png", file_path = STORAGE_PATH)
