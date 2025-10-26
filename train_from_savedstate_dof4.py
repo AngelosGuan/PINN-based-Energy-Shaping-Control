@@ -73,7 +73,7 @@ if __name__ == "__main__":
     # train with custom settings
     ############################
     # setup custom weights 
-    weights = [1.0, 1.0/10000, 1.0/100, 1.0/100, 1.0/470]
+    weights = [1.0, 0.5, 1.0/10000, 1.0/100, 1.0/100, 1.0/470]
     resonly_weights = [1.0, 0.0, 0.0, 0.0, 0.0]
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
@@ -91,10 +91,20 @@ if __name__ == "__main__":
     dataset = torch.utils.data.TensorDataset(train_set)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
+    # gather a fixed max error set
+    # largest 500 values
+    num_top = 500 
+    residual_over_X = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed)
+    # get indices of largest residuals
+    topk_vals, topk_idx = torch.topk(residual_flat, k=num_top)
+    # select corresponding X points
+    max_error_set = X_fixed[topk_idx].clone()
+    
+
     # save losses for logging
     train_loss_epoch = []
     grad_norm_epoch = []
-    num_losses  = 6
+    num_losses  = 7
     losses_epoch = [[] for _ in range(num_losses)]
 
     ############################################
@@ -133,7 +143,7 @@ if __name__ == "__main__":
             # using minibatch
             for (batch,) in dataloader:
                 batch = batch.to(device)
-                train_loss_batch, losses = loss_funcs.total_loss(model, batch, weights)
+                train_loss_batch, losses = loss_funcs.total_loss_checkpoint(model, batch, max_error_set, weights)
                 
                 # TODO: schedule gradient descent alteratively for different loss if needed or adjust learning rate
                 # backward prop
@@ -182,7 +192,7 @@ if __name__ == "__main__":
                 print(f"Error at epoch {ep+1}: {e}", file=f)
                 print(traceback.format_exc(), file=f)
             sys.exit(1)
-    [L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch] = losses_epoch
+    [L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch, L7_epoch] = losses_epoch
     X = X.detach().cpu()
 
 
@@ -203,15 +213,15 @@ if __name__ == "__main__":
 
     # verify on test sets
     # sobel
-    test_set = sampling.sobol_sampling(n_samples=4096, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    test_set = sampling.sobol_sampling(n_samples=4096, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS, seed=config.TEST_SEED)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="sobel_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
     # uniform
-    test_set = sampling.uniform_sampling(n_samples=config.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    test_set = sampling.uniform_sampling(n_samples=config.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS, seed=config.TEST_SEED)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="uniform_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
     # LHS
-    test_set = sampling.lhs_sampling(n_samples=config.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    test_set = sampling.lhs_sampling(n_samples=config.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS, seed=config.TEST_SEED)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="lhs_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
 
@@ -219,3 +229,4 @@ if __name__ == "__main__":
     plot.save_model_parameters(model, args.model_name, STORAGE_PATH)
     plot.save_checkpoint(model, adam, total_epoch, X, STORAGE_PATH)
     plot.save_losses(STORAGE_PATH, total_epoch, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch)
+    plot.save_max_error_loss(STORAGE_PATH, total_epoch, L7_epoch)

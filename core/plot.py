@@ -202,6 +202,15 @@ def save_losses(storage_path, total_epoch, train_loss_epoch, grad_norm_epoch, L1
         total_epoch=np.array([total_epoch], dtype=np.int32),
     )
 
+def save_max_error_loss(storage_path, total_epoch, L7):
+    filename = f"max_error_loss.npz"
+    path = os.path.abspath(os.path.join(storage_path, filename))
+    np.savez_compressed(
+        path,
+        L7=np.array(L7),
+        total_epoch=np.array([total_epoch], dtype=np.int32),
+    )
+    
 def load_metrics_npz(path):
     z = np.load(path, allow_pickle=False)
     train_loss_epoch= z["train_loss_epoch"].tolist()

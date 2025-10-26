@@ -1,4 +1,5 @@
 SEED = 60
+TEST_SEED = 61232
 
 # adam 
 WARM_UP = 20

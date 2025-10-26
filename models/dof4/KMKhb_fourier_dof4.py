@@ -3,7 +3,6 @@ import  torch
 import math
 from torch import nn
 from models.dof4.dynamics import I1z, I2z, Ipz, Mp, Ms, Mt, l1, l2, g, calculate_Mmtx, calculate_Nvect
-from core.utils import ResidualLinearNormBlock
 from configs.config_dof4 import RESIDUAL_INV, HIDDEN_WIDTH, NUM_DEPTH
 
 ########################################################################

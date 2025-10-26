@@ -255,6 +255,107 @@ class customLoss:
         ]
         return total, losses
 
+    #####################################################
+    # new total loss with max error loss
+    def total_loss_checkpoint(self, model, X, max_error, weights):
+
+        # X shape: (B, 8)
+        q_dot = X[:, 4:]  # (B, 4)
+
+        M = model.calculate_M(X)            # (B, 4, 4)
+        M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
+        M_inv = custom_inverse(M)        # (B, 4, 4)
+        #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+
+        K = model.forward(X)
+        ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
+        ks_inv = 1.0 / ks
+        K_inv = torch.diag_embed(ks_inv)
+        M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+
+        # TODO: make this batch safe
+        Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
+        Chatqdot = dynamics.calculate_Cqdot(model.calculate_M_hat, X)  # (B, 4, 1)
+
+        N = model.calculate_N(X)  # (B, 4, 1)
+        Nhat = N  # Change this if N̂ differs from N
+
+        hat = Chatqdot + Nhat                     # (B, 4, 1)
+        Mhat_inv_hat = torch.matmul(M_hat_inv, hat)  # (B, 4, 1)
+        diff = Cqdot + N - torch.matmul(M, Mhat_inv_hat)  # (B, 4, 1)
+
+        # Apply annihilator: B_left_annihilator shape (k, 4), transpose to (4, k)
+        matching_tensor = torch.matmul(diff.squeeze(-1), self.B_left_annihilator.T)  # (B, k)
+
+        # Compute vector norm over k for each batch → (B,)
+        L1s = 0.5 * torch.norm(matching_tensor, dim=1)
+
+        # compute control 
+        invB_exp = self.B_pinv.unsqueeze(0).expand(X.shape[0],-1,-1)
+
+        us = torch.bmm(invB_exp, diff).squeeze(-1)     # → (B, 5)
+
+        # residual_loss
+        residual_loss = L1s.mean()
+
+        # control_loss
+        control_loss = bounded_quad_loss(us, dynamics.CONTROL_BOUND).mean()
+
+        # deviation_loss
+        bound = 0.5
+        # Frobenius norm of difference
+        diff_norm = torch.linalg.norm(M_hat - M, ord='fro', dim=(1, 2))  # [n]
+        base_norm = torch.linalg.norm(M, ord='fro', dim=(1, 2)) + 1e-12  # [n]
+        diffs = diff_norm / base_norm 
+        deviation_loss = bounded_quad_loss(diffs, bound)
+
+
+        # eig_loss
+        alpha = 0.5
+        M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
+        a = M_eigvals.min(dim=-1).values * (1.0 - alpha)  # [n]
+        b = M_eigvals.max(dim=-1).values * (1.0 + alpha)  # [n]
+        eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
+        a = a.unsqueeze(-1)
+        b = b.unsqueeze(-1)
+        lower_violation = torch.nn.functional.softplus(a - eigvals_hat)  # [n, d]
+        upper_violation = torch.nn.functional.softplus(eigvals_hat - b)  # [n, d]
+        penalties = (lower_violation + upper_violation).sum(dim=-1)  # [n]
+        eig_loss = penalties.mean()
+
+        # sparse_loss
+        sparse_X = uniform_sampling(n_samples=100, input_dim=model.INPUT_DIM, device=X.device,
+                     lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+        sparse_loss, _ = self.get_PDE_Loss(model, sparse_X)
+
+        # max error loss
+        max_error_loss, _ = self.get_PDE_Loss(model, max_error)
+
+
+        #### not used
+
+        # pos_def_loss
+        min_eig_value = 1e-2
+        pos_penalties = torch.nn.functional.softplus(min_eig_value-eigvals_hat).sum(dim=-1)
+        pos_def_loss = pos_penalties.mean()
+
+
+        assert len(weights) == 6
+        W1, W2, W3, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4], weights[5]
+
+        #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
+        total =  W1*residual_loss + W2*max_error_loss + W3* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.001*pos_def_loss
+        
+        losses = [
+            residual_loss.detach().cpu(),
+            control_loss.detach().cpu(),
+            deviation_loss.detach().cpu(),
+            eig_loss.detach().cpu(),
+            sparse_loss.detach().cpu(),
+            pos_def_loss.detach().cpu(),
+            max_error_loss.detach().cpu()
+        ]
+        return total, losses
 
 ########################################################################
 # compute weights

@@ -22,7 +22,7 @@ def _validate_bounds(lower_bounds, upper_bounds, input_dim):
 ########################################################################
 # Latin Hypercube Sampling
 def lhs_sampling(n_samples=5000, input_dim=4, device='cpu',
-                 lower_bounds=None, upper_bounds=None):
+                 lower_bounds=None, upper_bounds=None, seed=config.SEED):
     """
     Latin Hypercube Sampling.
     Returns: (n_samples, input_dim) torch.Tensor
@@ -41,7 +41,7 @@ def lhs_sampling(n_samples=5000, input_dim=4, device='cpu',
         raise ValueError("All dimensions are fixed; no active dimensions to sample.")
 
     # needs explicit seeding to set deterministic
-    sampler = qmc.LatinHypercube(d=active_dim, seed=config.SEED)
+    sampler = qmc.LatinHypercube(d=active_dim, seed=seed)
     active_samples = sampler.random(n=n_samples)
 
     # Scale active samples
@@ -60,7 +60,7 @@ def lhs_sampling(n_samples=5000, input_dim=4, device='cpu',
 ########################################################################
 # Sobol Sequence with automatic inactive dimension handling
 def sobol_sampling(n_samples=4096, input_dim=4, device='cpu',
-                   lower_bounds=None, upper_bounds=None):
+                   lower_bounds=None, upper_bounds=None, seed=config.SEED):
     """
     Sobol Sequence Sampling with automatic detection of inactive dimensions.
     n_samples should ideally be a power of 2 for best Sobol performance.
@@ -79,7 +79,7 @@ def sobol_sampling(n_samples=4096, input_dim=4, device='cpu',
         raise ValueError("All dimensions are fixed; no active dimensions to sample.")
 
     # Sample only over active dimensions
-    sampler = qmc.Sobol(d=active_dim, scramble=True, seed=config.SEED)
+    sampler = qmc.Sobol(d=active_dim, scramble=True, seed=seed)
     active_samples = sampler.random(n=n_samples)
 
     # Scale active samples
@@ -99,7 +99,7 @@ def sobol_sampling(n_samples=4096, input_dim=4, device='cpu',
 ########################################################################
 # uniform random
 def uniform_sampling(n_samples=100, input_dim=4, device='cpu',
-                     lower_bounds=None, upper_bounds=None):
+                     lower_bounds=None, upper_bounds=None, seed=config.SEED):
     """
     Uniform random sampling with handling of fixed (lower == upper) dimensions.
     Returns: (n_samples, input_dim) torch.Tensor
@@ -119,7 +119,7 @@ def uniform_sampling(n_samples=100, input_dim=4, device='cpu',
 
     # Sample only active dimensions
     # needs to fix local generator with seed
-    rng = np.random.default_rng(config.SEED)
+    rng = np.random.default_rng(seed)
     active_samples = rng.uniform(
         low=lower_bounds[active_indices],
         high=upper_bounds[active_indices],
