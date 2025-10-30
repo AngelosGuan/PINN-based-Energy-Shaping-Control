@@ -72,7 +72,7 @@ if __name__ == "__main__":
     
     # train with custom settings
     ############################
-    max_error_threshold = 0.05
+    max_error_threshold = 0.01
     # setup custom weights 
     weights = [1.0, 0.05, 1.0/10000, 1.0/100, 1.0/100, 1.0/470]
     resonly_weights = [1.0, 0.0, 0.0, 0.0, 0.0]
