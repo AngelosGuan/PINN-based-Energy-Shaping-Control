@@ -87,6 +87,10 @@ if __name__ == "__main__":
 
     # setup dataloader
     # add 10000 lhs sample
+
+    # use purely random sample from start.
+    X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+
     X_fixed = sampling.lhs_sampling(n_samples=fixed_trainset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     train_set = torch.cat((X, X_fixed),dim=0)
     dataset = torch.utils.data.TensorDataset(train_set)
