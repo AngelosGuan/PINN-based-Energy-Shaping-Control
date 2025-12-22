@@ -1,9 +1,7 @@
-import configs.config_dof4 as config
 import core.plot as plot
 import core.sampling as sampling
 import core.training as training
 import core.utils as utils
-import models.dof4.KMKhb_fourier_dof4 as models
 import models.dof4.loss_dof4 as loss
 import models.dof4.dynamics as dynamics
 
@@ -30,10 +28,13 @@ if __name__ == "__main__":
         "--num_epoch_bfgs", type=int, default=0, help="Number of epochs for using L-BFGS for training"
     )
     parser.add_argument(
-        "--model_name", type=str, default="resMLP_dof4", help="Folder name to store the output within results folder."
+        "--model_name", type=str, default="MLP_dof4", help="Folder name to store the output within results folder."
     )
     parser.add_argument(
-        "--seed", type=int, default=config.SEED, help="Seed used for random algorithms."
+        "--seed", type=int, default=-1, help="Seed used for random algorithms."
+    )
+    parser.add_argument(
+        "--config_opt", type=int, default=0, help="config file to use, 0 for config_dof4, 1 for config_dof4_512, 2 for config_dof4_1024, ..."
     )
 
     args, _ = parser.parse_known_args()
@@ -43,11 +44,25 @@ if __name__ == "__main__":
 
     num_epochs_adam = args.num_epoch_adam
     num_epochs_bfgs = args.num_epoch_bfgs
-    seed = args.seed
-    config.SEED = seed
+
+    # different configuration and import for different models
+    config_opt = args.config_opt
+    if config_opt == 1:
+        import configs.config_dof4_512 as config
+        import models.dof4.KMKhb_fourier_dof4 as models
+    elif config_opt == 2:
+        import configs.config_dof4_1024 as config
+        import models.dof4.KMKhb_fourier_dof4 as models
+    else:
+        # default
+        import configs.config_dof4 as config
+        import models.dof4.KMKhb_fourier_dof4 as models
+
+    if not args.seed == -1:
+        config.SEED = args.seed
 
     # set random seed for reproductiveness
-    utils.set_seed(seed)
+    utils.set_seed(config.SEED)
 
     # get absolute storage path
     current_dir = os.getcwd()
@@ -71,7 +86,14 @@ if __name__ == "__main__":
     loss_funcs = loss.customLoss()
 
     # create model
-    model = models.MLP().to(device)
+    model = models.MLP(hidden_width=config.HIDDEN_WIDTH,
+                 use_fourier=True,
+                 concat_raw=True,   # keep original x
+                 fourier_mapping_size=64,
+                 fourier_sigma=1.0,
+                 fourier_gaussian=True,
+                 fourier_num_bands=None,
+                 fourier_logspace=True).to(device)
 
     # create training data from sampling
     X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
@@ -90,7 +112,13 @@ if __name__ == "__main__":
         config.l2_regu_adam,
         config.lr_lbfgs,
         config.max_iter_lbfgs,
-        PRINT_PATH
+        PRINT_PATH,
+        config.SAMPLE_EVERY, 
+        config.REPLACE_RATE, 
+        config.EARLY_STAGE_LEN, 
+        config.EARLY_REPLACE, 
+        config.SAMPLE_EVERY_EARLY,
+        config.WARM_UP
     )
 
     # print residual loss
@@ -101,15 +129,15 @@ if __name__ == "__main__":
 
     # verify on test sets
     # sobel
-    test_set = sampling.sobol_sampling(n_samples=4096, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    test_set = sampling.sobol_sampling(n_samples=4096, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS, seed=config.TEST_SEED)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="sobel_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
     # uniform
-    test_set = sampling.uniform_sampling(n_samples=config.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    test_set = sampling.uniform_sampling(n_samples=config.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS, seed=config.TEST_SEED)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="uniform_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
     # LHS
-    test_set = sampling.lhs_sampling(n_samples=config.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    test_set = sampling.lhs_sampling(n_samples=config.testset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS, seed=config.TEST_SEED)
     plot.plot_pde_loss_and_states(loss_funcs, model, test_set, filename="lhs_test.png", storage_path=STORAGE_PATH, print_path=PRINT_PATH)
 
     # matlab data

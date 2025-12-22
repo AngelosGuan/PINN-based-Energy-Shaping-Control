@@ -23,7 +23,7 @@ NUM_DEPTH = 2
 MAX_GRAD = 100.0
 
 # training size
-num_train_data = 10000
+num_train_data = 15000
 
 # test size
 testset_size = 5000

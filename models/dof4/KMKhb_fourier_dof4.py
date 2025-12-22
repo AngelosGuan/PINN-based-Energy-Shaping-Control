@@ -3,7 +3,7 @@ import  torch
 import math
 from torch import nn
 from models.dof4.dynamics import I1z, I2z, Ipz, Mp, Ms, Mt, l1, l2, g, calculate_Mmtx, calculate_Nvect
-from configs.config_dof4 import RESIDUAL_INV, HIDDEN_WIDTH, NUM_DEPTH
+from configs.config_dof4 import HIDDEN_WIDTH  #just for initialization default
 
 ########################################################################
 k_a = 0.7
@@ -62,8 +62,7 @@ class FourierFeatures(nn.Module):
 
 class MLP(nn.Module):
     def __init__(self,
-                 HIDDEN_WIDTH=256,
-                 RESIDUAL_INV=1,
+                 hidden_width=HIDDEN_WIDTH,
                  use_fourier=True,
                  concat_raw=True,   # keep original x
                  fourier_mapping_size=64,
@@ -74,8 +73,7 @@ class MLP(nn.Module):
         super().__init__()
         self.INPUT_DIM = 8 
         self.OUTPUT_DIM = 4
-        self.HIDDEN_WIDTH = HIDDEN_WIDTH
-        self.residual_interval = RESIDUAL_INV
+        self.HIDDEN_WIDTH = hidden_width
         self.hard_boundary = True
         self.pos_def = True 
         #fourier

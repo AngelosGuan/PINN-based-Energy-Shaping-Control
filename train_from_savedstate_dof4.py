@@ -1,9 +1,7 @@
-import configs.config_dof4 as config
 import core.plot as plot
 import core.sampling as sampling
 import core.training as training
 import core.utils as utils
-import models.dof4.KMKhb_fourier_dof4 as models
 import models.dof4.loss_dof4 as loss
 import models.dof4.dynamics as dynamics
 
@@ -26,7 +24,10 @@ if __name__ == "__main__":
         "--model_name", type=str, default="resMLP_dof4", help="Folder name to store the output within results folder."
     )
     parser.add_argument(
-        "--seed", type=int, default=config.SEED, help="Seed used for random algorithms."
+        "--seed", type=int, default=-1, help="Seed used for random algorithms."
+    )
+    parser.add_argument(
+        "--config_opt", type=int, default=0, help="config file to use, 0 for config_dof4, 1 for config_dof4_512, 2 for config_dof4_1024, ..."
     )
 
     args, _ = parser.parse_known_args()
@@ -34,17 +35,29 @@ if __name__ == "__main__":
     assert all(c.isalnum() or c == '_' for c in args.model_name), \
     "Error: model_name can only contain letters, numbers, and underscores (_)."
 
-    seed = args.seed
-    config.SEED = seed
+    # different configuration and import for different models
+    config_opt = args.config_opt
+    if config_opt == 1:
+        import configs.config_dof4_512 as config
+        import models.dof4.KMKhb_fourier_dof4 as models
+    elif config_opt == 2:
+        import configs.config_dof4_1024 as config
+        import models.dof4.KMKhb_fourier_dof4 as models
+    else:
+        # default
+        import configs.config_dof4 as config
+        import models.dof4.KMKhb_fourier_dof4 as models
+
+    if not args.seed == -1:
+        config.SEED = args.seed
 
     # set random seed for reproductiveness
-    utils.set_seed(seed)
+    utils.set_seed(config.SEED)
 
     # get absolute storage path
     current_dir = os.getcwd()
     STORAGE_PATH = os.path.abspath(os.path.join(current_dir, result_path, args.model_name))
     PRINT_PATH = os.path.abspath(os.path.join(STORAGE_PATH,"out.txt"))
-    #DATA_PATH = os.path.abspath(os.path.join(current_dir, data_path))
 
     # make sure paths exist
     RESULTS_PATH = os.path.abspath(os.path.join(current_dir, result_path))

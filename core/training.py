@@ -4,13 +4,12 @@ import sys
 from core.utils import compute_gradient_norm, CosineAnnealingWarmupRestarts, gradients_all_zero
 import core.sampling as sampling 
 import models.dof4.dynamics as dynamics
-from configs.config_dof4 import MAX_GRAD, SAMPLE_EVERY, REPLACE_RATE, EARLY_STAGE_LEN, EARLY_REPLACE, SAMPLE_EVERY_EARLY, WARM_UP
 import traceback
 
 
 ########################################################################
 # adam optimizer
-def initialize_adam_optimizer(model, lr, l2_regu):
+def initialize_adam_optimizer(model, lr, l2_regu, WARM_UP):
     adam = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=l2_regu)
     scheduler = CosineAnnealingWarmupRestarts(
         adam,
@@ -28,7 +27,7 @@ def initialize_lbfgs_optimizer(model, lr, max_iter):
 
 ########################################################################
 # train function
-def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, num_epochs_bfgs, lr_adam, l2_regu_adam, lr_lbfgs, max_iter_lbfgs, print_path):
+def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, num_epochs_bfgs, lr_adam, l2_regu_adam, lr_lbfgs, max_iter_lbfgs, print_path, SAMPLE_EVERY, REPLACE_RATE, EARLY_STAGE_LEN, EARLY_REPLACE, SAMPLE_EVERY_EARLY, WARM_UP):
 
     # use GPU when available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,7 +41,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
 
     # Initialize optimizers
     # adam
-    adam, scheduler = initialize_adam_optimizer(model, lr_adam, l2_regu_adam)
+    adam, scheduler = initialize_adam_optimizer(model, lr_adam, l2_regu_adam, WARM_UP)
     
     # lbfgs
     lbfgs = initialize_lbfgs_optimizer(model, lr_lbfgs, max_iter_lbfgs)

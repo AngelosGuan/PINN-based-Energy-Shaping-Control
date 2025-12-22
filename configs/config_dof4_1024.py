@@ -13,8 +13,9 @@ max_iter_lbfgs = 100
 # batch size
 BATCH_SIZE = 16
 
+
 # hidden layer width
-HIDDEN_WIDTH = 512
+HIDDEN_WIDTH = 1024
 
 # neural network depth
 NUM_DEPTH = 2
@@ -23,7 +24,7 @@ NUM_DEPTH = 2
 MAX_GRAD = 100.0
 
 # training size
-num_train_data = 10000
+num_train_data = 15000
 
 # test size
 testset_size = 5000
