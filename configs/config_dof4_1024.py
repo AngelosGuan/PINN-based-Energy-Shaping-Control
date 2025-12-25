@@ -1,4 +1,4 @@
-SEED = 60
+SEED = 253
 TEST_SEED = 61232
 
 # adam 
