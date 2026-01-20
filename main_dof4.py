@@ -53,6 +53,9 @@ if __name__ == "__main__":
     elif config_opt == 2:
         import configs.config_dof4_1024 as config
         import models.dof4.KMKhb_fourier_dof4 as models
+    elif config_opt == 3:
+        import configs.config_dof4_512_JMJ as config
+        import models.dof4.KMKhb_fourier_dof4 as models
     else:
         # default
         import configs.config_dof4 as config

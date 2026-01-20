@@ -98,6 +98,58 @@ def calculate_Cqdot(func_M, X):
         return Cqdot_vmap(X)
 
 
+def calculate_J0(x):
+    return torch.tensor([[0, 0, 0, 0], [(-1/2)*l1, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], device = x.device)
+
+def calculate_genM0(x):
+    return torch.tensor([[Ms, 0, 0, 0, 0, 0], [0, Ms, 0, 0, 0, 0], [0, 0, Ms, 0, 0, 0], [0, 0, 0, I1x, 0, 0], [0, 0, 0, 0, I1y, 0], [0, 0, 0, 0, 0, I1z]], device = x.device)
+
+def calculate_J1(x):
+    return torch.stack([torch.tensor([0, 0, 0, 0], device = x.device), 
+        torch.stack([torch.tensor((-1/2)*l2,device = x.device)+(-1)*l1*torch.cos(x[1]), torch.tensor((-1/2)*l2, device = x.device), torch.tensor(0, device = x.device), torch.tensor(0, device = x.device)]), 
+        torch.stack([l1*torch.sin(x[1]), torch.tensor(0, device = x.device), torch.tensor(0, device = x.device), torch.tensor(0, device = x.device)]), 
+        torch.tensor([1, 1, 0, 0], device = x.device), 
+        torch.tensor([0, 0, 0, 0], device = x.device), 
+        torch.tensor([0, 0, 0, 0], device = x.device)])
+
+
+def calculate_genM1(x):
+    return torch.tensor([[Mt, 0, 0, 0, 0, 0], [0, Mt, 0, 0, 0, 0], [0, 0, Mt, 0, 0, 0], [0, 0, 0, I2x, 0, 0], [0, 0, 0, 0, I2y, 0], [0, 0, 0, 0, 0, I2z]], device = x.device)
+
+def calculate_J2(x):
+    return torch.stack([torch.tensor([0, 0, 0, 0], device = x.device), 
+        torch.stack([(-1)*l2+(-1)*l1*torch.cos(x[1]), torch.tensor((-1)*l2, device = x.device), torch.tensor(0, device = x.device), torch.tensor(0, device = x.device)]), 
+        torch.stack([l1*torch.sin(x[1]), torch.tensor(0, device = x.device), torch.tensor(0, device = x.device), torch.tensor(0, device = x.device)]), 
+        torch.tensor([1, 1, 0, 0], device = x.device), 
+        torch.tensor([0, 0, 0, 0], device = x.device), 
+        torch.tensor([0, 0, 0, 0], device = x.device)]) 
+
+
+def calculate_genM2(x):
+    return torch.tensor([[Mp, 0, 0, 0, 0, 0], [0, Mp, 0, 0, 0, 0], [0, 0, Mp, 0, 0, 0], [0, 0, 0, Ipx, 0, 0], [0, 0, 0, 0, Ipy, 0], [0, 0, 0, 0, 0, Ipz]], device = x.device)
+
+def calculate_J3(x):
+    return torch.stack([torch.tensor([0, 0, 0, 0], device = x.device), 
+        torch.stack([(1/2)*(l2+(-2)*l2*torch.cos(x[2])+(-2)*l1*torch.cos(x[1]+x[2])), (1/2)*(l2+(-2)*l2*torch.cos(x[2])), torch.tensor((1/2)*l2, device = x.device), torch.tensor(0, device = x.device)]), 
+        torch.stack([l2*torch.sin(x[2])+l1*torch.sin(x[1]+x[2]), l2*torch.sin(x[2]), torch.tensor(0, device = x.device), torch.tensor(0, device = x.device)]), 
+        torch.tensor([1, 1, 1, 0], device = x.device), 
+        torch.tensor([0, 0, 0, 0], device = x.device), 
+        torch.tensor([0, 0, 0, 0], device = x.device)])
+
+def calculate_genM3(x):
+    return torch.tensor([[Mt, 0, 0, 0, 0, 0], [0, Mt, 0, 0, 0, 0], [0, 0, Mt, 0, 0, 0], [0, 0, 0, I2x, 0, 0], [0, 0, 0, 0, I2y, 0], [0, 0, 0, 0, 0, I2z]], device = x.device)
+
+def calculate_J4(x):
+    return torch.stack([torch.tensor([0, 0, 0, 0], device = x.device), 
+        torch.stack([(1/2)*l1+l2*torch.cos(x[3])+(-1)*l2*torch.cos(x[2]+x[3])+(-1)*l1*torch.cos(x[1]+x[2]+x[3]), (1/2)*l1+l2*torch.cos(x[3])+(-1)*l2*torch.cos(x[2]+x[3]), (1/2)*l1+l2*torch.cos(x[3]), torch.tensor((1/2)*l1, device = x.device)]), 
+        torch.stack([(-1)*l2*torch.sin(x[3])+l2*torch.sin(x[2]+x[3])+l1*torch.sin(x[1]+x[2]+x[3]), l2*((-1)*torch.sin(x[3])+torch.sin(x[2]+x[3])), (-1)*l2*torch.sin(x[3]), torch.tensor(0, device = x.device)]), 
+        torch.tensor([1, 1, 1, 1], device = x.device), 
+        torch.tensor([0, 0, 0, 0], device = x.device), 
+        torch.tensor([0, 0, 0, 0], device = x.device)])
+
+def calculate_genM4(x):
+    return torch.tensor([[Ms, 0, 0, 0, 0, 0], [0, Ms, 0, 0, 0, 0], [0, 0, Ms, 0, 0, 0], [0, 0, 0, I1x, 0, 0], [0, 0, 0, 0, I1y, 0], [0, 0, 0, 0, 0, I1z]], device = x.device)
+
 
 # # Coriolis Matrix
 # def calculate_Cqdot(func_M, x):
