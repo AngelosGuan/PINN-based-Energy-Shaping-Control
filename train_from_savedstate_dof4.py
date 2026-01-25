@@ -91,7 +91,7 @@ if __name__ == "__main__":
     ############################
     max_error_threshold = 0.01
     # setup custom weights 
-    weights = [1.0, 0.05, 1.0/10000, 1.0/100, 1.0/100, 1.0/470]
+    weights = [1.0, 0.0001, 1.0/10000, 0.0001, 0.0001, 0.1]
     resonly_weights = [1.0, 0.0, 0.0, 0.0, 0.0]
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
