@@ -1,5 +1,10 @@
 #!/bin/bash
-# Bash script: norms_test.sh
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=16G
+#SBATCH --gpus=1
+#SBATCH --constraint=gpu_v100_32gb|gpu_a100_40gb|gpu_a100_80gb
+# Bash script: main_512_JMJ.sh
 
 # --- deterministic math + single-threaded BLAS/OMP ---
 export CUBLAS_WORKSPACE_CONFIG=":4096:8"   # or ":16:8"
