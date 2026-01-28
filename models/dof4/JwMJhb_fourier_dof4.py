@@ -215,6 +215,7 @@ class MLP(nn.Module):
         else:
             x_b = X
 
+        n = x_b.shape[0]
 
         K_vec = self.forward(x_b)       # [n,4]
 
