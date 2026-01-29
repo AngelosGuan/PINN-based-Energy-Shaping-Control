@@ -243,7 +243,7 @@ class customLoss:
         W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
-        total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.001*pos_def_loss
+        total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.1*pos_def_loss
         
         losses = [
             residual_loss.detach().cpu(),
@@ -341,6 +341,7 @@ class customLoss:
 
 
         assert len(weights) == 6
+        # just set here
         W1, W2, W3, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4], weights[5]
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 

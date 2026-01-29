@@ -3,7 +3,7 @@ import torch
 import sys
 from core.utils import compute_gradient_norm, CosineAnnealingWarmupRestarts, gradients_all_zero
 import core.sampling as sampling 
-import models.dof4.dynamics as dynamics
+import models.dof2.dynamics as dynamics
 import traceback
 
 
@@ -22,18 +22,14 @@ def initialize_adam_optimizer(model, lr, l2_regu, WARM_UP):
     )
     return adam, scheduler
 
-def initialize_lbfgs_optimizer(model, lr, max_iter):
-    return torch.optim.LBFGS(model.parameters(), lr=lr, max_iter=max_iter, line_search_fn="strong_wolfe")
 
 ########################################################################
 # train function
-def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, num_epochs_bfgs, lr_adam, l2_regu_adam, lr_lbfgs, max_iter_lbfgs, print_path, SAMPLE_EVERY, REPLACE_RATE, EARLY_STAGE_LEN, EARLY_REPLACE, SAMPLE_EVERY_EARLY, WARM_UP):
+def train(model, loss_funcs, X, batch_size, num_epochs_adam, lr_adam, l2_regu_adam, print_path, SAMPLE_EVERY, REPLACE_RATE, EARLY_STAGE_LEN, EARLY_REPLACE, SAMPLE_EVERY_EARLY, WARM_UP):
 
     # use GPU when available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # setup initial weights
-    weights = calculate_weights(loss_funcs, model, X, print_path)
+
 
     # setup dataloader
     dataset = torch.utils.data.TensorDataset(X)
@@ -42,23 +38,12 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
     # Initialize optimizers
     # adam
     adam, scheduler = initialize_adam_optimizer(model, lr_adam, l2_regu_adam, WARM_UP)
-    
-    # lbfgs
-    lbfgs = initialize_lbfgs_optimizer(model, lr_lbfgs, max_iter_lbfgs)
-    # 2DOF
-    def closure():
-        # needs to define closure here for other models
-        lbfgs.zero_grad()
-        loss, _ = loss_funcs.total_loss(model, X, weights)
-        loss.backward()
-        #torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_GRAD)
-        return loss
 
 
     # save losses for logging
     train_loss_epoch = []
     grad_norm_epoch = []
-    num_losses  = 6
+    num_losses  = 3
     losses_epoch = [[] for _ in range(num_losses)]
 
     ############################################
@@ -135,7 +120,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
             # using minibatch
             for (batch,) in dataloader:
                 batch = batch.to(device)
-                train_loss_batch, losses = loss_funcs.total_loss(model, batch, weights)
+                train_loss_batch, losses = loss_funcs.total_loss(model, batch)
                 
                 # TODO: schedule gradient descent alteratively for different loss if needed or adjust learning rate
                 # backward prop
@@ -191,61 +176,4 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 print(traceback.format_exc(), file=f)
             sys.exit(1)
 
-
-
-    # L-BFGS training loop
-    for ep in range(num_epochs_bfgs):
-        try:
-
-            # step with l-BFGS optimizer
-            lbfgs.step(closure)
-
-            # compute grad norm
-            total_norm = compute_gradient_norm(model)
-            grad_norm_epoch.append(total_norm)
-                
-            # recompute losses for logging without grads
-            with torch.no_grad():
-                # using minibatch
-                train_loss = []
-                loss_lists = [[] for _ in range(num_losses)]
-
-                for (batch,) in dataloader:
-                    batch = batch.to(device)
-                    train_loss_batch, losses = loss_funcs.total_loss(model, batch, weights)
-
-                    train_loss.append(train_loss_batch.detach().cpu())
-                    for i, loss_val in enumerate(losses):
-                        loss_lists[i].append(loss_val)
-
-                    # clear GPU memory every minibatch to prevent overflow
-                    del train_loss_batch, losses
-                    torch.cuda.empty_cache()
-
-                # log losses of all the minibatches
-                train_loss_epoch.append(np.mean(train_loss))
-                for i, loss_list in enumerate(loss_lists):
-                    losses_epoch[i].append(np.mean(loss_list))
-
-                # print progress
-                if ep % 10 == 0 or ep == num_epochs_bfgs - 1:
-                    with open(print_path, "a") as f:
-                        total_ep = ep + num_epochs_adam + 1
-                        print(f"epoch: {total_ep}, train loss: {train_loss_epoch[total_ep-1]:.7f}, "
-                            f"grad norm: {total_norm:.7f}, " +", ".join([f"L{i+1}: {mean:.7f}" for i, mean in enumerate([losses_epoch[j][total_ep-1] for j in range(num_losses)])]), file=f)
-
-
-            # clear memory here
-            torch.cuda.empty_cache()
-
-            # check for GPU memory leak
-            # with open(PRINT_PATH, "a") as f:
-            #     print(f"GPU Memory Allocated: {torch.cuda.memory_allocated() / 1e6} MB", file=f)
-            #     print(f"GPU Memory Cached: {torch.cuda.memory_reserved() / 1e6} MB", file=f)
-
-        except Exception as e:
-            with open(PRINT_PATH, "a") as f:
-                print(f"Error at epoch {ep+num_epochs_adam+1}: {e}", file=f)
-                print(traceback.format_exc(), file=f)
-            sys.exit(1)
     return train_loss_epoch, grad_norm_epoch, losses_epoch, adam, X.detach().cpu()
