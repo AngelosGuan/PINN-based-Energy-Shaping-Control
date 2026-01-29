@@ -153,7 +153,7 @@ class customLoss:
         J2 = M @ J2_tilde @ M + S @ Md_tilde @ M - M @ Md_tilde @ torch.transpose(S, -2, -1)
 
 
-        p1 = Md @ M_inv $ d1 
+        p1 = Md @ M_inv @ d1 
         p2 = 2.0 * J2 @ Md_inv @ p
 
         p5 = Md @ M_inv @ dVd
