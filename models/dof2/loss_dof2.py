@@ -180,7 +180,7 @@ class customLoss:
         # Vd has min at equilibrium
         w_grad = 1.0
         w_hess = 1.0
-        x_eq = torch.tensor([0.0, 0.0, 0.0, 0.0], device = X.device)
+        x_eq = torch.tensor([0.0, 0.0, 0.0, 0.0], device = X.device, requires_grad=True)
         Vd_eq = model.calculate_Vd(x_eq).squeeze()
         grad_Vd = torch.autograd.grad(Vd_eq, x_eq, create_graph=True)[0]
         grad_q = grad_Vd[:2]
@@ -224,7 +224,7 @@ class customLoss:
         # Vd has min at equilibrium
         w_grad = 1.0
         w_hess = 1.0
-        x_eq = torch.tensor([0.0, 0.0, 0.0, 0.0], device = X.device)
+        x_eq = torch.tensor([0.0, 0.0, 0.0, 0.0], device = X.device, requires_grad=True)
         Vd_eq = model.calculate_Vd(x_eq).squeeze()
         grad_Vd = torch.autograd.grad(Vd_eq, x_eq, create_graph=True)[0]
         grad_q = grad_Vd[:2]

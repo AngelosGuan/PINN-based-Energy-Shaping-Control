@@ -43,7 +43,7 @@ class FourierFeatures(nn.Module):
         s2 = torch.sin(q2)
         c2 = torch.cos(q2)
 
-        basis = torch.cat(
+        basis = torch.stack(
             [
                 s1, c1, s2, c2,
                 s1 * s1, c1 * c1, s2 * s2, c2 * c2,
@@ -52,7 +52,7 @@ class FourierFeatures(nn.Module):
                 1/(s1*s1), 1/(s2*s2), 1/(c1*c1), 1/(c2*c2), torch.log(1/c1+s1/c1),torch.log(1/c2+s2/c2)
             ],
             dim=-1,
-        )  # (N,26)
+        )  # (N,28)
 
         if unbatched:
             return basis.squeeze(0)  # (26,)

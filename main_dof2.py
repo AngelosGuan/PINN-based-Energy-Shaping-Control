@@ -77,9 +77,13 @@ if __name__ == "__main__":
     # create model
     model = model.Model().to(device)
 
+    print("finished creating model")
+
     # create training data from sampling
     X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     
+    print("finished sampling data")
+
     # call train
     (train_loss_epoch, grad_norm_epoch, 
     [L1_epoch, L2_epoch, L3_epoch], adam, X) = training.train(
