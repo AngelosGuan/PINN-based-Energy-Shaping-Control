@@ -26,7 +26,6 @@ class FourierFeatures(nn.Module):
     """
     def __init__(self):
         super().__init__()
-        self.in_dim = in_dim
         self.in_dim = 4
         self.out_dim = 28 # update this if change basis
 
