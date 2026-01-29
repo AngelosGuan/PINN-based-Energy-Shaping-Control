@@ -60,7 +60,7 @@ class FourierFeatures(nn.Module):
         return basis  # (N,26)
 
 # TODO: divide model into two subnetwork
-class MdNet(nn.module):
+class MdNet(nn.Module):
     def __init__(self):  # out_dim depends on how you parameterize Md
         super().__init__()
         self.fourier = FourierFeatures()
@@ -92,7 +92,7 @@ class MdNet(nn.module):
                     nn.init.zeros_(m.bias)
         return
 
-class VdNet(nn.module):
+class VdNet(nn.Module):
     def __init__(self):  # out_dim depends on how you parameterize Md
         super().__init__()
         self.fourier = FourierFeatures()
