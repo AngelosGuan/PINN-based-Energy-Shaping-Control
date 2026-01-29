@@ -27,7 +27,7 @@ def calculate_V(x):
 def calculate_dVdq(x):
     return torch.stack(
         [torch.stack([-a*d*torch.sin(x[0])]),
-        torch.tensor([0.0],, device = x.device)
+        torch.tensor([0.0], device = x.device)
         ])
 
 def calculate_J(x):
