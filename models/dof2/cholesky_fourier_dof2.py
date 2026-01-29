@@ -2,7 +2,7 @@
 import  torch
 import math
 from torch import nn
-from models.dof2.dynamics import calculate_Mmtx
+import models.dof2.dynamics as dynamics
 from configs.config_dof2 import HIDDEN_WIDTH
 ########################################################################
 
@@ -158,7 +158,7 @@ class Model(nn.Module):
             X = X.unsqueeze(0) 
             unbatched = True
 
-        M_list = [calculate_Mmtx() for x in X]
+        M_list = [dynamics.calculate_M(x) for x in X]
         M = torch.stack(M_list, dim=0) 
 
         # if unbatched, output accordingly
