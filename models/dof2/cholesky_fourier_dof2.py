@@ -188,10 +188,13 @@ class Model(nn.Module):
             unbatched = True
 
         n = out.size(0)
-        L = torch.zeros((n, 2, 2), device=X.device, dtype=X.dtype)
-        L[:, 0, 0] = out[:, 0]   # o1
-        L[:, 1, 0] = out[:, 1]   # o2
-        L[:, 1, 1] = out[:, 2]   # o3
+        o1, o2, o3 = out[:, 0], out[:, 1], out[:, 2]
+        
+        L = torch.stack(
+        [
+            torch.stack([o1, zeros], dim=-1),
+            torch.stack([o2, o3],    dim=-1),
+        ],dim=-2)  # (n,2,2)
 
         # M =LL^T+eps*I
         eps = 1e-6
