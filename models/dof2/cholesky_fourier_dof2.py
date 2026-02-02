@@ -192,7 +192,7 @@ class Model(nn.Module):
         
         L = torch.stack(
         [
-            torch.stack([o1, torch.tensor(0, device = X.device)], dim=-1),
+            torch.stack([o1, torch.zeros_like(o1, device = X.device)], dim=-1),
             torch.stack([o2, o3],    dim=-1),
         ],dim=-2)  # (n,2,2)
 
