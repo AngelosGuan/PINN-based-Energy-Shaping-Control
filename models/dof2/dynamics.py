@@ -18,19 +18,19 @@ k = 0.007
 
 def calculate_M(x):
     return torch.stack([
-        torch.stack([torch.tensor(1.0, device = x.device), b*torch.cos(x[0])]),
-        torch.stack([b*torch.cos(x[0]), torch.tensor(c, device = x.device)])])
+        torch.stack([torch.tensor(1.0, device = x.device, dtype=x.dtype), b*torch.cos(x[0])]),
+        torch.stack([b*torch.cos(x[0]), torch.tensor(c, device = x.device, dtype=x.dtype)])])
 
 def calculate_V(x):
-    return torch.tensor(a*d*torch.cos(x[0]), device = x.device)
+    return a*d*torch.cos(x[0])
 
 def calculate_dVdq(x):
     return torch.stack(
         [torch.stack([-a*d*torch.sin(x[0])]),
-        torch.tensor([0.0], device = x.device)
+        torch.tensor([0.0], device = x.device, dtype=x.dtype)
         ])
 
 def calculate_J(x):
     return torch.stack([
-        torch.stack([(k*k*torch.pow(b, 3))/12*torch.pow(torch.cos(x[0]), 4)*torch.sin(x[0])]),
-        torch.stack([-(k*k*b*b)/12*torch.pow(torch.cos(x[0]), 3)*torch.sin(x[0])])])
+        torch.stack([(k*k*b**3)/12*(torch.cos(x[0])**4)*torch.sin(x[0])]),
+        torch.stack([-(k*k*b*b)/12*(torch.cos(x[0])**3)*torch.sin(x[0])])])
