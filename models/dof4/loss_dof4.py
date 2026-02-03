@@ -70,7 +70,7 @@ class customLoss:
         matching_tensor = torch.matmul(diff.squeeze(-1), self.B_left_annihilator.T)  # (B, k)
 
         # Compute vector norm over k for each batch → (B,)
-        return 0.5 * torch.norm(matching_tensor, dim=1)
+        return 0.5 * torch.norm(matching_tensor, dim=-1)
 
 
     #################################################################
@@ -115,7 +115,7 @@ class customLoss:
         matching_tensor = torch.matmul(diff.squeeze(-1), self.B_left_annihilator.T)  # (B, k)
 
         # Compute vector norm over k for each batch → (B,)
-        L1s = 0.5 * torch.norm(matching_tensor, dim=1)
+        L1s = 0.5 * torch.norm(matching_tensor, dim=-1)
 
         # compute control 
         invB_exp = self.B_pinv.unsqueeze(0).expand(X.shape[0],-1,-1)
@@ -207,7 +207,7 @@ class customLoss:
         matching_tensor = torch.matmul(diff.squeeze(-1), self.B_left_annihilator.T)  # (B, k)
 
         # Compute vector norm over k for each batch → (B,)
-        L1s = 0.5 * torch.norm(matching_tensor, dim=1)
+        L1s = 0.5 * torch.norm(matching_tensor, dim=-1)
 
         # compute control 
         invB_exp = self.B_pinv.unsqueeze(0).expand(X.shape[0],-1,-1)
