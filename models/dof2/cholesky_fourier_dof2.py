@@ -43,20 +43,64 @@ class FourierFeatures(nn.Module):
         s2 = torch.sin(q2)
         c2 = torch.cos(q2)
 
+        # ---------- numerically safe helpers ----------
+        # Choose eps to cap feature magnitudes: max |1/z| <= 1/eps
+        # Start with 1e-2 (cap at 100). If still unstable, increase to 5e-2 (cap at 20).
+        eps = x.new_tensor(1e-2)
+
+        def safe_den(z: torch.Tensor) -> torch.Tensor:
+            # sign-preserving clamp: avoids crossing zero via "+eps"
+            return torch.sign(z) * torch.clamp(z.abs(), min=eps)
+
+        def safe_inv(z: torch.Tensor) -> torch.Tensor:
+            return 1.0 / safe_den(z)
+
+        def safe_div(n: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
+            return n / safe_den(d)
+
+        def safe_log_pos(z: torch.Tensor) -> torch.Tensor:
+            # ensures argument > 0
+            return torch.log(torch.clamp(z, min=eps))
+
+        # ---------- construct basis ----------
+        inv_s1 = safe_inv(s1)
+        inv_s2 = safe_inv(s2)
+        inv_c1 = safe_inv(c1)
+        inv_c2 = safe_inv(c2)
+
+        tan1 = safe_div(s1, c1)
+        tan2 = safe_div(s2, c2)
+        cot1 = safe_div(c1, s1)
+        cot2 = safe_div(c2, s2)
+
+        inv_s1_sq = safe_inv(s1 * s1)
+        inv_s2_sq = safe_inv(s2 * s2)
+        inv_c1_sq = safe_inv(c1 * c1)
+        inv_c2_sq = safe_inv(c2 * c2)
+
+        # Your original: log(1/c + s/c) = log((1+s)/c)
+        # Make it safe: use safe division and clamp positive before log.
+        log1 = safe_log_pos(safe_div(1.0 + s1, c1))
+        log2 = safe_log_pos(safe_div(1.0 + s2, c2))
+
         basis = torch.stack(
             [
                 s1, c1, s2, c2,
                 s1 * s1, c1 * c1, s2 * s2, c2 * c2,
-                s1 * s1 * s1, c1 * c1 * c1, s2 * s2 * s2, c2 * c2 * c2,
-                q1, q2, 1/s1, 1/s2, 1/c1, 1/c2, s1/c1, s2/c2, c1/s1, c2/s2,
-                1/(s1*s1), 1/(s2*s2), 1/(c1*c1), 1/(c2*c2), torch.log(1/c1+s1/c1),torch.log(1/c2+s2/c2)
+                s1 ** 3, c1 ** 3, s2 ** 3, c2 ** 3,
+                q1, q2,
+                inv_s1, inv_s2, inv_c1, inv_c2,
+                tan1, tan2, cot1, cot2,
+                inv_s1_sq, inv_s2_sq, inv_c1_sq, inv_c2_sq,
+                log1, log2
             ],
             dim=-1,
-        )  # (N,28)
+        )  # (N, 28)
 
         if unbatched:
-            return basis.squeeze(0)  # (26,)
-        return basis  # (N,26)
+            return basis.squeeze(0)  # (28,)
+        return basis  # (N, 28)
+
 
 # TODO: divide model into two subnetwork
 class MdNet(nn.Module):
