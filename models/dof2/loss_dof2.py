@@ -36,6 +36,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #     return result
 
 def custom_inverse(A):
+    det_eps = 1e-6
     a,b = A[...,0,0], A[...,0,1]
     c,d = A[...,1,0], A[...,1,1]
     det = a*d - b*c
