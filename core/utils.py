@@ -105,9 +105,7 @@ def load_data(data_path):
 ########################################################################
 # check NaN
 def assert_finite(name, t):
-    if not torch.isfinite(t).all():
-        bad = (~torch.isfinite(t)).nonzero(as_tuple=False)[:5]
-        raise RuntimeError(f"{name} has NaN/Inf. Example idx: {bad.tolist()}")
+    torch._assert(torch.isfinite(t).all(), f"{name} has NaN/Inf")
 
 
 # fix random seed for reproductivity
