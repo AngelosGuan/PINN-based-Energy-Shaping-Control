@@ -3,36 +3,47 @@ from core.utils import bounded_quad_loss, damped_pseudo_inverse
 from models.dof2 import dynamics
 from core.sampling import uniform_sampling
 import numpy as np
+from core.utils import assert_finite
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def custom_inverse(M):
-    cond_threshold = 1e4
-    epsilon = 1e-2
+# def custom_inverse(M):
+#     cond_threshold = 1e4
+#     epsilon = 1e-2
 
-    is_batched = M.dim() == 3
+#     is_batched = M.dim() == 3
 
-    if not is_batched:
-        M = M.unsqueeze(0)  # → (1, d, d)
+#     if not is_batched:
+#         M = M.unsqueeze(0)  # → (1, d, d)
 
-    B, d, _ = M.shape
+#     B, d, _ = M.shape
 
-    conds = torch.linalg.cond(M)  # (B,)
-    conds = conds.unsqueeze(-1).unsqueeze(-1)  # shape: (B, 1, 1) for broadcasting
+#     conds = torch.linalg.cond(M)  # (B,)
+#     conds = conds.unsqueeze(-1).unsqueeze(-1)  # shape: (B, 1, 1) for broadcasting
 
-    I = torch.eye(d, device=M.device).expand(B, d, d)
+#     I = torch.eye(d, device=M.device).expand(B, d, d)
     
-    # mask: shape (B, 1, 1), value 1.0 if ill-conditioned, 0.0 if not
-    mask = (conds > cond_threshold).float()
+#     # mask: shape (B, 1, 1), value 1.0 if ill-conditioned, 0.0 if not
+#     mask = (conds > cond_threshold).float()
 
-    M_reg = M + mask * (epsilon * I)
+#     M_reg = M + mask * (epsilon * I)
 
-    result = torch.linalg.pinv(M_reg)
+#     result = torch.linalg.pinv(M_reg)
 
-    if not is_batched:
-        result = result.squeeze(0)  # back to (d, d)
+#     if not is_batched:
+#         result = result.squeeze(0)  # back to (d, d)
 
-    return result
+#     return result
+
+def custom_inverse(A):
+    a,b = A[...,0,0], A[...,0,1]
+    c,d = A[...,1,0], A[...,1,1]
+    det = a*d - b*c
+    det = torch.sign(det) * torch.clamp(det.abs(), min=A.new_tensor(det_eps))
+    return torch.stack([
+        torch.stack([ d/det, -b/det], dim=-1),
+        torch.stack([-c/det,  a/det], dim=-1),
+    ], dim=-2)
 
 
 #vmap functions for partial derivatives
@@ -129,28 +140,42 @@ class customLoss:
 
         qdot = X[:, 2:].unsqueeze(-1)     # [n,2,1]
 
-        M = model.calculate_M(X)  #[n,2,2]
+        M = model.calculate_M(X)  #[n,2,2]  
+        assert_finite('M', M)
         Md_tilde = model.calculate_Md_hat(X)  #[n,2,2]
+        assert_finite('Md_tilde', Md_tilde)
         Md = M @ Md_tilde @ M    #[n,2,2]
+        assert_finite('Md', Md)
 
         M_inv = custom_inverse(M)  #[n,2,2]
+        assert_finite('M_inv', M_inv)
         Md_inv = custom_inverse(Md) #[n,2,2]
+        assert_finite('Md_inv', Md_inv)
         Md_tilde_inv = M @ Md_inv @ M
+        assert_finite('Md_tilde_inv', Md_tilde_inv)
 
         d1 = calculate_d1(model, X) #[n,2,1]
+        assert_finite('d1', d1)
         S = calculate_S(model, X) # [n,2,2]
+        assert_finite('S', S)
         d3 = calculate_d3(model, X) #[n,2,1]
+        assert_finite('d3', d3)
         dV = calculate_dV(X)        #[n,2,1]
+        assert_finite('dV', dV)
         dVd = calculate_dVd(model, X) #[n,2,1]
+        assert_finite('dVd', dVd)
 
         p = M @ qdot
 
 
 
         J = calculate_J(X) #[n,2,1]
+        assert_finite('J', J)
         alpha = (torch.transpose(qdot, -2, -1) @ Md_tilde_inv @ J) #[n,1,1]
+        assert_finite('alpha', alpha)
         J2_tilde = alpha * self.W  #[n,2,2]
         J2 = M @ J2_tilde @ M + S @ Md_tilde @ M - M @ Md_tilde @ torch.transpose(S, -2, -1)
+        assert_finite('J2', J2)
 
 
         p1 = Md @ M_inv @ d1 
@@ -176,6 +201,8 @@ class customLoss:
     def total_loss(self, model, X):
         
         residual_loss = self.get_PDE_Loss_trajectory(model, X).mean()
+
+        assert_finite('residual_loss', residual_loss)
         
         # Vd has min at equilibrium
         w_grad = 1.0
@@ -198,6 +225,8 @@ class customLoss:
 
         # symmetrize (numerical stability)
         H = 0.5 * (H + H.T)
+
+        assert_finite('H', H)
         
         # PSD penalty without eigendecomposition (2x2 principal minors)
         # PSD iff a>=0, c>=0, det>=0 for symmetric [[a,b],[b,c]]
@@ -212,7 +241,10 @@ class customLoss:
             torch.relu(eps - c) + 
             torch.relu(eps - det))
 
-        Vdmin_loss = loss_Vd_min = w_grad * loss_grad + w_hess * loss_hessian
+        assert_finite('loss_hessian', loss_hessian)
+        assert_finite('loss_grad', loss_grad)
+
+        Vdmin_loss = w_grad * loss_grad + w_hess * loss_hessian
 
 
 

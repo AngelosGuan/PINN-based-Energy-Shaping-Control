@@ -4,6 +4,7 @@ import math
 from torch import nn
 import models.dof2.dynamics as dynamics
 from configs.config_dof2 import HIDDEN_WIDTH
+from core.utils import assert_finite
 ########################################################################
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -64,24 +65,47 @@ class FourierFeatures(nn.Module):
 
         # ---------- construct basis ----------
         inv_s1 = safe_inv(s1)
+        assert_finite('inv_s1', inv_s1)
+
         inv_s2 = safe_inv(s2)
+        assert_finite('inv_s2', inv_s2)
+        
         inv_c1 = safe_inv(c1)
+        assert_finite('inv_c1', inv_c1)
+
         inv_c2 = safe_inv(c2)
+        assert_finite('inv_c2', inv_c2)
 
         tan1 = safe_div(s1, c1)
+        assert_finite('tan1', tan1)
+
         tan2 = safe_div(s2, c2)
+        assert_finite('tan2', tan2)
+
         cot1 = safe_div(c1, s1)
+        assert_finite('cot1', cot1)
+
         cot2 = safe_div(c2, s2)
+        assert_finite('cot2', cot2)
 
         inv_s1_sq = safe_inv(s1 * s1)
-        inv_s2_sq = safe_inv(s2 * s2)
-        inv_c1_sq = safe_inv(c1 * c1)
-        inv_c2_sq = safe_inv(c2 * c2)
+        assert_finite('inv_s1_sq', inv_s1_sq)
 
-        # Your original: log(1/c + s/c) = log((1+s)/c)
-        # Make it safe: use safe division and clamp positive before log.
+        inv_s2_sq = safe_inv(s2 * s2)
+        assert_finite('inv_s2_sq', inv_s2_sq)
+
+
+        inv_c1_sq = safe_inv(c1 * c1)
+        assert_finite('inv_c1_sq', inv_c1_sq)
+
+        inv_c2_sq = safe_inv(c2 * c2)
+        assert_finite('inv_c2_sq', inv_c2_sq)
+
         log1 = safe_log_pos(safe_div(1.0 + s1, c1))
+        assert_finite('log1', log1)
+
         log2 = safe_log_pos(safe_div(1.0 + s2, c2))
+        assert_finite('log2', log2)
 
         basis = torch.stack(
             [
@@ -231,6 +255,7 @@ class Model(nn.Module):
             out = out.unsqueeze(0) 
             unbatched = True
 
+        assert_finite('NN out', out)
         n = out.size(0)
         o1, o2, o3 = out[:, 0], out[:, 1], out[:, 2]
         
@@ -240,12 +265,16 @@ class Model(nn.Module):
             torch.stack([o2, o3],    dim=-1),
         ],dim=-2)  # (n,2,2)
 
+        assert_finite('L', L)
+
         # M =LL^T+eps*I
-        eps = 1e-6
+        eps = 1e-4
         Md_hat = L @ L.transpose(-1,-2) + eps*torch.eye(2, device=X.device, dtype=X.dtype).unsqueeze(0)
         
         if unbatched:
             Md_hat = Md_hat.squeeze(0)  # [2,2]
+
+        assert_finite('Md_hat', Md_hat)
         return Md_hat
 
 
