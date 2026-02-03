@@ -220,6 +220,8 @@ class customLoss:
 
         # zero grad at x_eq
         loss_grad = torch.sum(grad_q**2)
+        
+        assert_finite('loss_grad', loss_grad)
 
         H = q_eq.new_zeros(2, 2)
         for i in range(2):
@@ -245,7 +247,7 @@ class customLoss:
             torch.relu(eps - det))
 
         assert_finite('loss_hessian', loss_hessian)
-        assert_finite('loss_grad', loss_grad)
+        
 
         Vdmin_loss = w_grad * loss_grad + w_hess * loss_hessian
 
