@@ -180,20 +180,37 @@ class customLoss:
         # Vd has min at equilibrium
         w_grad = 1.0
         w_hess = 1.0
-        x_eq = torch.tensor([0.0, 0.0, 0.0, 0.0], device = X.device, requires_grad=True)
-        Vd_eq = model.calculate_Vd(x_eq).squeeze()
-        grad_Vd = torch.autograd.grad(Vd_eq, x_eq, create_graph=True)[0]
-        grad_q = grad_Vd[:2]
+        x_eq = torch.zeros(4, device=X.device, dtype=X.dtype)
+        q_eq = x_eq[:2].detach().clone().requires_grad_(True)
+        # build the full x passed to Vd: [q_eq, qdot_eq] with qdot fixed (detached)
+        x_for_Vd = torch.cat([q_eq, x_eq[2:].detach()])  # shape [4]
+
+        Vd_eq = model.calculate_Vd(x_for_Vd).squeeze()
+        # gradient of Vd w.r.t q only
+        grad_q = torch.autograd.grad(Vd_eq, q_eq, create_graph=True)[0]  # shape [2]
 
         # zero grad at x_eq
         loss_grad = torch.sum(grad_q**2)
 
-        H = torch.zeros(2, 2, device=X.device)
+        H = q_eq.new_zeros(2, 2)
         for i in range(2):
-            H[i] = torch.autograd.grad(grad_q[i], x_eq, retain_graph=True)[0][:2]
-        eigvals = torch.linalg.eigvalsh(H)
+            H[i, :] = torch.autograd.grad(grad_q[i], q_eq, retain_graph=True, create_graph=True)[0]
+
+        # symmetrize (numerical stability)
+        H = 0.5 * (H + H.T)
+        
+        # PSD penalty without eigendecomposition (2x2 principal minors)
+        # PSD iff a>=0, c>=0, det>=0 for symmetric [[a,b],[b,c]]
+        a = H[0, 0]
+        c = H[1, 1]
+        b = H[0, 1]
+        det = a * c - b * b
+        eps = q_eq.new_tensor(1e-6)
         # pos def hessian 
-        loss_hessian = torch.sum(torch.relu(-eigvals))
+        loss_hessian = loss_hessian = (
+            torch.relu(eps - a) +
+            torch.relu(eps - c) + 
+            torch.relu(eps - det))
 
         Vdmin_loss = loss_Vd_min = w_grad * loss_grad + w_hess * loss_hessian
 
