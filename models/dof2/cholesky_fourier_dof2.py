@@ -126,6 +126,53 @@ class FourierFeatures(nn.Module):
         return basis  # (N, 28)
 
 
+class FourierFeatures_Vd(nn.Module):
+    """
+    Deterministic Fourier/polynomial basis for 2D input x = [q1, q2].
+
+    Accepts:
+      - unbatched: (2,) or (2,1) or (1,2)
+      - batched:   (N,2) or (N,2,1)
+
+    Returns (in this exact order):
+      [ sin(q1), cos(q1), sin(q2), cos(q2),
+        sin^2(q1), cos^2(q1), sin^2(q2), cos^2(q2),
+        sin^3(q1), cos^3(q1), sin^3(q2), cos^3(q2),
+        q1, q2 ]
+    """
+    def __init__(self):
+        super().__init__()
+        self.in_dim = 4
+        self.out_dim = 13 # update this if change basis
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        unbatched = False
+        if x.ndim == 1:
+            x = x.unsqueeze(0)
+            unbatched = True
+
+        q1 = x[:, 0]
+        q2 = x[:, 1]
+
+        s1 = torch.sin(q1)
+        c1 = torch.cos(q1)
+        s2 = torch.sin(q2)
+        c2 = torch.cos(q2)
+
+        basis = torch.stack(
+            [
+                s1, c1, s2, c2,
+                s1 * s1, c1 * c1, s2 * s2, c2 * c2,
+                q1, q2,
+                q1*q1, q2*q2, q1*q2
+            ],
+            dim=-1,
+        )  # (N, 28)
+
+        if unbatched:
+            return basis.squeeze(0)  # (28,)
+        return basis  # (N, 28)
+
 # TODO: divide model into two subnetwork
 class MdNet(nn.Module):
     def __init__(self):  # out_dim depends on how you parameterize Md
@@ -162,7 +209,7 @@ class MdNet(nn.Module):
 class VdNet(nn.Module):
     def __init__(self):  # out_dim depends on how you parameterize Md
         super().__init__()
-        self.fourier = FourierFeatures()
+        self.fourier = FourierFeatures_Vd()
         in0 = self.fourier.out_dim 
         self.OUTPUT_DIM  = 1
         self.model = nn.Sequential(
