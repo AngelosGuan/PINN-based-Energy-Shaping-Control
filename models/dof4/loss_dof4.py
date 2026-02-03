@@ -71,60 +71,29 @@ class customLoss:
         # self.B = torch.tensor([[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 1.0, 1.0, 0],[0, 0, 0, 0, 0]], device=device)
         B_T = torch.transpose(self.B,0,1)
         self.B_pinv = torch.inverse(B_T @ self.B) @ B_T
-    ##################################
-    # vmap (not necessary here!)
-    def get_PDE_Loss_trajectory(self, model, X):
-        # helpers
-
-        # x:(4,1) y(3,1)
-        def matching_condition_vmap(x):
-            q_dot = x[4:].view(-1,1)
-
-            M = model.calculate_M(x)
-            M_hat = model.calculate_M_hat(x)
-            M_inv = custom_inverse(M)
-            #M_hat_inv =  custom_inverse(M_hat)
-            K = model.forward(x)
-            ks = torch.diagonal(K)
-            ks_inv = 1.0 / ks
-            K_inv = torch.diag(ks_inv)
-            M_hat_inv = K_inv @ M_inv @ K_inv
-
-            Cqdot = dynamics.calculate_Cqdot(model.calculate_M, x)
-            Chatqdot = dynamics.calculate_Cqdot(model.calculate_M_hat, x)
-
-            N = model.calculate_N(x)
-            Nhat = N
-
-
-            hat = Chatqdot + Nhat 
-            diff = Cqdot + N - M @ M_hat_inv @ hat 
-            matching_tensor = self.B_left_annihilator @ diff 
-            return 0.5 * torch.linalg.vector_norm(matching_tensor, ord=2)
-
-        # use torch.vmap to vectorize the transform function
-        vmap_pde_loss_func = torch.vmap(matching_condition_vmap)
-
-        # apply the vectorized transform function on data
-        L1s = vmap_pde_loss_func(X)
-        return L1s
 
     ##################################
     # no vmap
-    def get_PDE_Loss_trajectory_batch(self, model, X):
+    def get_PDE_Loss_trajectory(self, model, X):
         # X shape: (B, 8)
         q_dot = X[:, 4:]  # (B, 4)
 
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
-        K = model.forward(X)
-        ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-        ks_inv = 1.0 / ks
-        K_inv = torch.diag_embed(ks_inv)
-        M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+
+        if self.pos_def:
+            # only for KMK, change later
+            K = model.forward(X)
+            ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
+            ks_inv = 1.0 / ks
+            K_inv = torch.diag_embed(ks_inv)
+            M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+        else:
+            M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+
+
 
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
         Chatqdot = dynamics.calculate_Cqdot(model.calculate_M_hat, X)  # (B, 4, 1)
@@ -140,7 +109,7 @@ class customLoss:
         matching_tensor = torch.matmul(diff.squeeze(-1), self.B_left_annihilator.T)  # (B, k)
 
         # Compute vector norm over k for each batch → (B,)
-        return 0.5 * torch.norm(matching_tensor, dim=1)
+        return 0.5 * torch.norm(matching_tensor, dim=-1)
 
 
     #################################################################
@@ -155,11 +124,11 @@ class customLoss:
     # pointwise residual for adaptive sampling (RAD)
     @torch.no_grad()
     def residual_pointwise(self, model, X):
-        return self.get_PDE_Loss_trajectory_batch(model, X)
+        return self.get_PDE_Loss_trajectory(model, X)
 
     ##################################
     # modify this to compute everything in one go
-    def total_loss(self, model, X, weights):
+    def total_loss(self, model, X):
 
         # X shape: (B, 8)
         q_dot = X[:, 4:]  # (B, 4)
@@ -167,13 +136,16 @@ class customLoss:
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
-        K = model.forward(X)
-        ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-        ks_inv = 1.0 / ks
-        K_inv = torch.diag_embed(ks_inv)
-        M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+        if self.pos_def:
+            # only for KMK, change later
+            K = model.forward(X)
+            ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
+            ks_inv = 1.0 / ks
+            K_inv = torch.diag_embed(ks_inv)
+            M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+        else:
+            M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
         # TODO: make this batch safe
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
@@ -190,7 +162,7 @@ class customLoss:
         matching_tensor = torch.matmul(diff.squeeze(-1), self.B_left_annihilator.T)  # (B, k)
 
         # Compute vector norm over k for each batch → (B,)
-        L1s = 0.5 * torch.norm(matching_tensor, dim=1)
+        L1s = 0.5 * torch.norm(matching_tensor, dim=-1)
 
         # compute control 
         invB_exp = self.B_pinv.unsqueeze(0).expand(X.shape[0],-1,-1)
@@ -239,11 +211,11 @@ class customLoss:
         pos_def_loss = pos_penalties.mean()
 
 
-        assert len(weights) == 5
-        W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
+        # assert len(weights) == 5
+        # W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
-        total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.0001*pos_def_loss
+        total =  1.0*residual_loss + 0.001* control_loss + 0.1*sparse_loss
         
         losses = [
             residual_loss.detach().cpu(),
@@ -265,13 +237,15 @@ class customLoss:
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
-
-        K = model.forward(X)
-        ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-        ks_inv = 1.0 / ks
-        K_inv = torch.diag_embed(ks_inv)
-        M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+        if self.pos_def:
+            # only for KMK, change later
+            K = model.forward(X)
+            ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
+            ks_inv = 1.0 / ks
+            K_inv = torch.diag_embed(ks_inv)
+            M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+        else:
+            M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
         # TODO: make this batch safe
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
@@ -288,7 +262,7 @@ class customLoss:
         matching_tensor = torch.matmul(diff.squeeze(-1), self.B_left_annihilator.T)  # (B, k)
 
         # Compute vector norm over k for each batch → (B,)
-        L1s = 0.5 * torch.norm(matching_tensor, dim=1)
+        L1s = 0.5 * torch.norm(matching_tensor, dim=-1)
 
         # compute control 
         invB_exp = self.B_pinv.unsqueeze(0).expand(X.shape[0],-1,-1)
@@ -342,15 +316,15 @@ class customLoss:
 
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
-        total =  1.0*residual_loss + 0.5*max_error_loss + 0.5*sparse_loss
+        total =  1.0*residual_loss + 0.1*sparse_loss
         
         losses = [
             residual_loss.detach().cpu(),
             control_loss.detach().cpu(),
             deviation_loss.detach().cpu(),
             eig_loss.detach().cpu(),
-            sparse_loss.detach().cpu(),
             pos_def_loss.detach().cpu(),
+            sparse_loss.detach().cpu(),
             max_error_loss.detach().cpu()
         ]
         return total, losses

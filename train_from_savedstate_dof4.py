@@ -84,7 +84,7 @@ if __name__ == "__main__":
     adam = torch.optim.AdamW(model.parameters(), lr=config.lr_adam, weight_decay=config.l2_regu_adam)
 
     # load checkpoint
-    total_epoch, X = plot.load_checkpoint(model, adam, STORAGE_PATH, device=device)
+    total_epoch, _ = plot.load_checkpoint(model, adam, STORAGE_PATH, device=device)
     
     # train with custom settings
     ############################

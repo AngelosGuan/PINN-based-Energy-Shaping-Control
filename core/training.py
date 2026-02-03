@@ -49,7 +49,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
     def closure():
         # needs to define closure here for other models
         lbfgs.zero_grad()
-        loss, _ = loss_funcs.total_loss(model, X, weights)
+        loss, _ = loss_funcs.total_loss(model, X)
         loss.backward()
         #torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_GRAD)
         return loss
@@ -135,7 +135,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
             # using minibatch
             for (batch,) in dataloader:
                 batch = batch.to(device)
-                train_loss_batch, losses = loss_funcs.total_loss(model, batch, weights)
+                train_loss_batch, losses = loss_funcs.total_loss(model, batch)
                 
                 # TODO: schedule gradient descent alteratively for different loss if needed or adjust learning rate
                 # backward prop
@@ -212,7 +212,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
 
                 for (batch,) in dataloader:
                     batch = batch.to(device)
-                    train_loss_batch, losses = loss_funcs.total_loss(model, batch, weights)
+                    train_loss_batch, losses = loss_funcs.total_loss(model, batch)
 
                     train_loss.append(train_loss_batch.detach().cpu())
                     for i, loss_val in enumerate(losses):
