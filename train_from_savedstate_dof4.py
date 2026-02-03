@@ -86,13 +86,13 @@ if __name__ == "__main__":
 
     # load checkpoint
     total_epoch, X = plot.load_checkpoint(model, adam, STORAGE_PATH, device=device)
+
+    # restart scheduler (change if needed)
+    adam = torch.optim.AdamW(model.parameters(), lr=config.lr_adam, weight_decay=config.l2_regu_adam)
     
     # train with custom settings
     ############################
     max_error_threshold = 0.01
-    # setup custom weights 
-    weights = [1.0, 0.0001, 1.0/10000, 0.0001, 0.0001, 0.1]
-    resonly_weights = [1.0, 0.0, 0.0, 0.0, 0.0]
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
     num_epochs_adam = 200
@@ -163,7 +163,7 @@ if __name__ == "__main__":
             # using minibatch
             for (batch,) in dataloader:
                 batch = batch.to(device)
-                train_loss_batch, losses = loss_funcs.total_loss_checkpoint(model, batch, max_error_set, weights)
+                train_loss_batch, losses = loss_funcs.total_loss_checkpoint(model, batch, max_error_set)
                 
                 # TODO: schedule gradient descent alteratively for different loss if needed or adjust learning rate
                 # backward prop

@@ -36,33 +36,6 @@ def custom_inverse(M):
     #return torch.linalg.pinv(M)
     #return damped_pseudo_inverse(M)
 
-# def custom_inverse(M, epsilon=1e-3, cond_threshold=1e4):
-#     """
-#     Batch-safe pseudo-inverse with soft regularization.
-#     Applies ε * I scaled by normalized condition number when κ(M) is high.
-#     """
-#     is_batched = M.dim() == 3
-#     if not is_batched:
-#         M = M.unsqueeze(0)  # (1, d, d)
-
-#     B, d, _ = M.shape
-#     conds = torch.linalg.cond(M)  # (B,)
-#     conds = conds.clamp(min=1.0)  # avoid division by zero
-
-#     # Scaling factor: (conds / threshold) capped at 1.0
-#     scale = (conds / cond_threshold).clamp(max=1.0)  # (B,)
-#     scale = scale.view(-1, 1, 1)  # broadcast to (B, 1, 1)
-
-#     I = torch.eye(d, device=M.device).expand(B, d, d)
-#     M_reg = M + scale * (epsilon * I)
-
-#     M_inv = torch.linalg.pinv(M_reg)
-
-#     if not is_batched:
-#         M_inv = M_inv.squeeze(0)
-
-#     return M_inv
-
 
 class customLoss:
     def __init__(self):
@@ -159,7 +132,7 @@ class customLoss:
 
     ##################################
     # modify this to compute everything in one go
-    def total_loss(self, model, X, weights):
+    def total_loss(self, model, X):
 
         # X shape: (B, 8)
         q_dot = X[:, 4:]  # (B, 4)
@@ -204,26 +177,26 @@ class customLoss:
         control_loss = bounded_quad_loss(us, dynamics.CONTROL_BOUND).mean()
 
         # deviation_loss
-        bound = 0.5
-        # Frobenius norm of difference
-        diff_norm = torch.linalg.norm(M_hat - M, ord='fro', dim=(1, 2))  # [n]
-        base_norm = torch.linalg.norm(M, ord='fro', dim=(1, 2)) + 1e-12  # [n]
-        diffs = diff_norm / base_norm 
-        deviation_loss = bounded_quad_loss(diffs, bound)
+        # bound = 0.5
+        # # Frobenius norm of difference
+        # diff_norm = torch.linalg.norm(M_hat - M, ord='fro', dim=(1, 2))  # [n]
+        # base_norm = torch.linalg.norm(M, ord='fro', dim=(1, 2)) + 1e-12  # [n]
+        # diffs = diff_norm / base_norm 
+        # deviation_loss = bounded_quad_loss(diffs, bound)
 
 
         # eig_loss
-        alpha = 0.5
-        M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
-        a = M_eigvals.min(dim=-1).values * (1.0 - alpha)  # [n]
-        b = M_eigvals.max(dim=-1).values * (1.0 + alpha)  # [n]
-        eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
-        a = a.unsqueeze(-1)
-        b = b.unsqueeze(-1)
-        lower_violation = torch.nn.functional.softplus(a - eigvals_hat)  # [n, d]
-        upper_violation = torch.nn.functional.softplus(eigvals_hat - b)  # [n, d]
-        penalties = (lower_violation + upper_violation).sum(dim=-1)  # [n]
-        eig_loss = penalties.mean()
+        # alpha = 0.5
+        # M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
+        # a = M_eigvals.min(dim=-1).values * (1.0 - alpha)  # [n]
+        # b = M_eigvals.max(dim=-1).values * (1.0 + alpha)  # [n]
+        # eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
+        # a = a.unsqueeze(-1)
+        # b = b.unsqueeze(-1)
+        # lower_violation = torch.nn.functional.softplus(a - eigvals_hat)  # [n, d]
+        # upper_violation = torch.nn.functional.softplus(eigvals_hat - b)  # [n, d]
+        # penalties = (lower_violation + upper_violation).sum(dim=-1)  # [n]
+        # eig_loss = penalties.mean()
 
         # sparse_loss
         sparse_X = uniform_sampling(n_samples=100, input_dim=model.INPUT_DIM, device=X.device,
@@ -234,30 +207,28 @@ class customLoss:
         #### not used
 
         # pos_def_loss
-        min_eig_value = 1e-2
-        pos_penalties = torch.nn.functional.softplus(min_eig_value-eigvals_hat).sum(dim=-1)
-        pos_def_loss = pos_penalties.mean()
+        # min_eig_value = 1e-2
+        # pos_penalties = torch.nn.functional.softplus(min_eig_value-eigvals_hat).sum(dim=-1)
+        # pos_def_loss = pos_penalties.mean()
 
+        #W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
+        #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.0001*pos_def_loss
 
-        assert len(weights) == 5
-        W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
+        total =  1.0* residual_loss + 1/1000 * control_loss + 0.1*sparse_loss 
 
-        #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
-        total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.0001*pos_def_loss
-        
         losses = [
             residual_loss.detach().cpu(),
             control_loss.detach().cpu(),
-            deviation_loss.detach().cpu(),
-            eig_loss.detach().cpu(),
+            #deviation_loss.detach().cpu(),
+            #eig_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
-            pos_def_loss.detach().cpu()
+            #pos_def_loss.detach().cpu()
         ]
         return total, losses
 
     #####################################################
     # new total loss with max error loss
-    def total_loss_checkpoint(self, model, X, max_error, weights):
+    def total_loss_checkpoint(self, model, X, max_error):
 
         # X shape: (B, 8)
         q_dot = X[:, 4:]  # (B, 4)
@@ -302,26 +273,26 @@ class customLoss:
         control_loss = bounded_quad_loss(us, dynamics.CONTROL_BOUND).mean()
 
         # deviation_loss
-        bound = 0.5
-        # Frobenius norm of difference
-        diff_norm = torch.linalg.norm(M_hat - M, ord='fro', dim=(1, 2))  # [n]
-        base_norm = torch.linalg.norm(M, ord='fro', dim=(1, 2)) + 1e-12  # [n]
-        diffs = diff_norm / base_norm 
-        deviation_loss = bounded_quad_loss(diffs, bound)
+        # bound = 0.5
+        # # Frobenius norm of difference
+        # diff_norm = torch.linalg.norm(M_hat - M, ord='fro', dim=(1, 2))  # [n]
+        # base_norm = torch.linalg.norm(M, ord='fro', dim=(1, 2)) + 1e-12  # [n]
+        # diffs = diff_norm / base_norm 
+        # deviation_loss = bounded_quad_loss(diffs, bound)
 
 
         # eig_loss
-        alpha = 0.5
-        M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
-        a = M_eigvals.min(dim=-1).values * (1.0 - alpha)  # [n]
-        b = M_eigvals.max(dim=-1).values * (1.0 + alpha)  # [n]
-        eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
-        a = a.unsqueeze(-1)
-        b = b.unsqueeze(-1)
-        lower_violation = torch.nn.functional.softplus(a - eigvals_hat)  # [n, d]
-        upper_violation = torch.nn.functional.softplus(eigvals_hat - b)  # [n, d]
-        penalties = (lower_violation + upper_violation).sum(dim=-1)  # [n]
-        eig_loss = penalties.mean()
+        # alpha = 0.5
+        # M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
+        # a = M_eigvals.min(dim=-1).values * (1.0 - alpha)  # [n]
+        # b = M_eigvals.max(dim=-1).values * (1.0 + alpha)  # [n]
+        # eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
+        # a = a.unsqueeze(-1)
+        # b = b.unsqueeze(-1)
+        # lower_violation = torch.nn.functional.softplus(a - eigvals_hat)  # [n, d]
+        # upper_violation = torch.nn.functional.softplus(eigvals_hat - b)  # [n, d]
+        # penalties = (lower_violation + upper_violation).sum(dim=-1)  # [n]
+        # eig_loss = penalties.mean()
 
         # sparse_loss
         sparse_X = uniform_sampling(n_samples=100, input_dim=model.INPUT_DIM, device=X.device,
@@ -335,24 +306,24 @@ class customLoss:
         #### not used
 
         # pos_def_loss
-        min_eig_value = 1e-2
-        pos_penalties = torch.nn.functional.softplus(min_eig_value-eigvals_hat).sum(dim=-1)
-        pos_def_loss = pos_penalties.mean()
+        # min_eig_value = 1e-2
+        # pos_penalties = torch.nn.functional.softplus(min_eig_value-eigvals_hat).sum(dim=-1)
+        # pos_def_loss = pos_penalties.mean()
 
 
-        assert len(weights) == 6
-        W1, W2, W3, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4], weights[5]
+        #W1, W2, W3, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4], weights[5]
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
-        total =  W1*residual_loss + W2*max_error_loss + W3* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.1*pos_def_loss
+        #total =  W1*residual_loss + W2*max_error_loss + W3* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.1*pos_def_loss
+        total =  1.0* residual_loss + 0.1*sparse_loss + 0.1*max_error_loss
         
         losses = [
             residual_loss.detach().cpu(),
             control_loss.detach().cpu(),
-            deviation_loss.detach().cpu(),
-            eig_loss.detach().cpu(),
+            #deviation_loss.detach().cpu(),
+            #eig_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
-            pos_def_loss.detach().cpu(),
+            #pos_def_loss.detach().cpu(),
             max_error_loss.detach().cpu()
         ]
         return total, losses
@@ -360,6 +331,7 @@ class customLoss:
 ########################################################################
 # compute weights
 def calculate_weights(loss_funcs, model, X, print_path=None):
+    # not currently used in 4dof
     # constants
     return [1.0/400, 1.0/763412, 1.0, 1.0, 1.0/470]
 
