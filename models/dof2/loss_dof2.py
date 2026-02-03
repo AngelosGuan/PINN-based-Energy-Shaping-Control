@@ -215,6 +215,8 @@ class customLoss:
         x_for_Vd = torch.cat([q_eq, x_eq[2:].detach()])  # shape [4]
 
         Vd_eq = model.calculate_Vd(x_for_Vd).squeeze()
+        assert_finite('Vd_eq', Vd_eq)
+        
         # gradient of Vd w.r.t q only
         grad_q = torch.autograd.grad(Vd_eq, q_eq, create_graph=True)[0]  # shape [2]
 
