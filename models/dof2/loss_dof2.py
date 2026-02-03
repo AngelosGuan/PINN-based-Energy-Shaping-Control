@@ -206,6 +206,7 @@ class customLoss:
         assert_finite('residual_loss', residual_loss)
         
         # Vd has min at equilibrium
+        # nan produced here
         w_grad = 1.0
         w_hess = 1.0
         x_eq = torch.zeros(4, device=X.device, dtype=X.dtype)
@@ -223,7 +224,8 @@ class customLoss:
         H = q_eq.new_zeros(2, 2)
         for i in range(2):
             H[i, :] = torch.autograd.grad(grad_q[i], q_eq, retain_graph=True, create_graph=True)[0]
-
+            if H[i, :] is None:
+                raise RuntimeError(f"Hessian row {i} is disconnected from computational graph.")
         # symmetrize (numerical stability)
         H = 0.5 * (H + H.T)
 
