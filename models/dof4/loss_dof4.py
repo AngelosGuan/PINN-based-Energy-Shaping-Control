@@ -48,56 +48,13 @@ class customLoss:
     # vmap (not necessary here!)
     def get_PDE_Loss_trajectory(self, model, X):
         # helpers
-
-        # x:(4,1) y(3,1)
-        def matching_condition_vmap(x):
-            q_dot = x[4:].view(-1,1)
-
-            M = model.calculate_M(x)
-            M_hat = model.calculate_M_hat(x)
-            M_inv = custom_inverse(M)
-            #M_hat_inv =  custom_inverse(M_hat)
-            K = model.forward(x)
-            ks = torch.diagonal(K)
-            ks_inv = 1.0 / ks
-            K_inv = torch.diag(ks_inv)
-            M_hat_inv = K_inv @ M_inv @ K_inv
-
-            Cqdot = dynamics.calculate_Cqdot(model.calculate_M, x)
-            Chatqdot = dynamics.calculate_Cqdot(model.calculate_M_hat, x)
-
-            N = model.calculate_N(x)
-            Nhat = N
-
-
-            hat = Chatqdot + Nhat 
-            diff = Cqdot + N - M @ M_hat_inv @ hat 
-            matching_tensor = self.B_left_annihilator @ diff 
-            return 0.5 * torch.linalg.vector_norm(matching_tensor, ord=2)
-
-        # use torch.vmap to vectorize the transform function
-        vmap_pde_loss_func = torch.vmap(matching_condition_vmap)
-
-        # apply the vectorized transform function on data
-        L1s = vmap_pde_loss_func(X)
-        return L1s
-
-    ##################################
-    # no vmap
-    def get_PDE_Loss_trajectory_batch(self, model, X):
         # X shape: (B, 8)
         q_dot = X[:, 4:]  # (B, 4)
 
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
-
-        K = model.forward(X)
-        ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-        ks_inv = 1.0 / ks
-        K_inv = torch.diag_embed(ks_inv)
-        M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
         Chatqdot = dynamics.calculate_Cqdot(model.calculate_M_hat, X)  # (B, 4, 1)
@@ -128,7 +85,7 @@ class customLoss:
     # pointwise residual for adaptive sampling (RAD)
     @torch.no_grad()
     def residual_pointwise(self, model, X):
-        return self.get_PDE_Loss_trajectory_batch(model, X)
+        return self.get_PDE_Loss_trajectory(model, X)
 
     ##################################
     # modify this to compute everything in one go
@@ -140,13 +97,8 @@ class customLoss:
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
-        K = model.forward(X)
-        ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-        ks_inv = 1.0 / ks
-        K_inv = torch.diag_embed(ks_inv)
-        M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
 
         # TODO: make this batch safe
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
@@ -236,13 +188,9 @@ class customLoss:
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        #M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
-        K = model.forward(X)
-        ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-        ks_inv = 1.0 / ks
-        K_inv = torch.diag_embed(ks_inv)
-        M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+
 
         # TODO: make this batch safe
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
