@@ -28,7 +28,7 @@ class FourierFeatures(nn.Module):
     def __init__(self):
         super().__init__()
         self.in_dim = 4
-        self.out_dim = 28 # update this if change basis
+        self.out_dim = 14 # update this if change basis
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         unbatched = False
@@ -49,74 +49,70 @@ class FourierFeatures(nn.Module):
         # Start with 1e-2 (cap at 100). If still unstable, increase to 5e-2 (cap at 20).
         eps = x.new_tensor(1e-2)
 
-        def safe_den(z: torch.Tensor) -> torch.Tensor:
-            # sign-preserving clamp: avoids crossing zero via "+eps"
-            return torch.sign(z) * torch.clamp(z.abs(), min=eps)
+        # def safe_den(z: torch.Tensor) -> torch.Tensor:
+        #     # sign-preserving clamp: avoids crossing zero via "+eps"
+        #     return torch.sign(z) * torch.clamp(z.abs(), min=eps)
 
-        def safe_inv(z: torch.Tensor) -> torch.Tensor:
-            return 1.0 / safe_den(z)
+        # def safe_inv(z: torch.Tensor) -> torch.Tensor:
+        #     return 1.0 / safe_den(z)
 
-        def safe_div(n: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
-            return n / safe_den(d)
+        # def safe_div(n: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
+        #     return n / safe_den(d)
 
-        def safe_log_pos(z: torch.Tensor) -> torch.Tensor:
-            # ensures argument > 0
-            return torch.log(torch.clamp(z, min=eps))
+        # def safe_log_pos(z: torch.Tensor) -> torch.Tensor:
+        #     # ensures argument > 0
+        #     return torch.log(torch.clamp(z, min=eps))
 
-        # ---------- construct basis ----------
-        inv_s1 = safe_inv(s1)
-        #assert_finite('inv_s1', inv_s1)
+        # # ---------- construct basis ----------
+        # inv_s1 = safe_inv(s1)
+        # #assert_finite('inv_s1', inv_s1)
 
-        inv_s2 = safe_inv(s2)
-        #assert_finite('inv_s2', inv_s2)
+        # inv_s2 = safe_inv(s2)
+        # #assert_finite('inv_s2', inv_s2)
         
-        inv_c1 = safe_inv(c1)
-        #assert_finite('inv_c1', inv_c1)
+        # inv_c1 = safe_inv(c1)
+        # #assert_finite('inv_c1', inv_c1)
 
-        inv_c2 = safe_inv(c2)
-        #assert_finite('inv_c2', inv_c2)
+        # inv_c2 = safe_inv(c2)
+        # #assert_finite('inv_c2', inv_c2)
 
-        tan1 = safe_div(s1, c1)
-        #assert_finite('tan1', tan1)
+        # tan1 = safe_div(s1, c1)
+        # #assert_finite('tan1', tan1)
 
-        tan2 = safe_div(s2, c2)
-        #assert_finite('tan2', tan2)
+        # tan2 = safe_div(s2, c2)
+        # #assert_finite('tan2', tan2)
 
-        cot1 = safe_div(c1, s1)
-        #assert_finite('cot1', cot1)
+        # cot1 = safe_div(c1, s1)
+        # #assert_finite('cot1', cot1)
 
-        cot2 = safe_div(c2, s2)
-        #assert_finite('cot2', cot2)
+        # cot2 = safe_div(c2, s2)
+        # #assert_finite('cot2', cot2)
 
-        inv_s1_sq = safe_inv(s1 * s1)
-        #assert_finite('inv_s1_sq', inv_s1_sq)
+        # inv_s1_sq = safe_inv(s1 * s1)
+        # #assert_finite('inv_s1_sq', inv_s1_sq)
 
-        inv_s2_sq = safe_inv(s2 * s2)
-        #assert_finite('inv_s2_sq', inv_s2_sq)
+        # inv_s2_sq = safe_inv(s2 * s2)
+        # #assert_finite('inv_s2_sq', inv_s2_sq)
 
 
-        inv_c1_sq = safe_inv(c1 * c1)
-        #assert_finite('inv_c1_sq', inv_c1_sq)
+        # inv_c1_sq = safe_inv(c1 * c1)
+        # #assert_finite('inv_c1_sq', inv_c1_sq)
 
-        inv_c2_sq = safe_inv(c2 * c2)
-        #assert_finite('inv_c2_sq', inv_c2_sq)
+        # inv_c2_sq = safe_inv(c2 * c2)
+        # #assert_finite('inv_c2_sq', inv_c2_sq)
 
-        log1 = safe_log_pos(safe_div(1.0 + s1, c1))
-        #assert_finite('log1', log1)
+        # log1 = safe_log_pos(safe_div(1.0 + s1, c1))
+        # #assert_finite('log1', log1)
 
-        log2 = safe_log_pos(safe_div(1.0 + s2, c2))
-        #assert_finite('log2', log2)
+        # log2 = safe_log_pos(safe_div(1.0 + s2, c2))
+        # #assert_finite('log2', log2)
 
         basis = torch.stack(
             [
                 s1, c1, s2, c2,
                 s1 * s1, c1 * c1, s2 * s2, c2 * c2,
                 s1 ** 3, c1 ** 3, s2 ** 3, c2 ** 3,
-                q1, q2,
-                inv_s1, inv_s2, inv_c1, inv_c2,
-                tan1, tan2, cot1, cot2,
-                inv_s1_sq, inv_s2_sq, inv_c1_sq, inv_c2_sq,
-                log1, log2
+                q1, q2
             ],
             dim=-1,
         )  # (N, 28)
@@ -316,7 +312,7 @@ class Model(nn.Module):
         #assert_finite('L', L)
 
         # M =LL^T+eps*I
-        eps = 1e-4
+        eps = 1e-3
         Md_hat = L @ L.transpose(-1,-2) + eps*torch.eye(2, device=X.device, dtype=X.dtype).unsqueeze(0)
         
         if unbatched:

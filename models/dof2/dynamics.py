@@ -2,8 +2,8 @@ import numpy as numpy
 import torch
 
 # state variable ranges
-LOWER_BOUNDS = [-6.283, -1.0, -6.0, -6.0]
-UPPER_BOUNDS = [ 6.283, 7.0,  6.0,  6.0]
+LOWER_BOUNDS = [-1.57, -1.0, -6.0, -6.0]
+UPPER_BOUNDS = [ 1.57, 7.0,  6.0,  6.0]
 
 M = 0.6
 m = 0.39
