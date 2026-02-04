@@ -188,8 +188,9 @@ class customLoss:
         eqn2 = self.G_left_annihilator @ (dV - p5) #[n,1,1]
         eqn1 = eqn1.squeeze(-1).squeeze(-1) #[n]
         eqn2 = eqn2.squeeze(-1).squeeze(-1) #[n]
+        residual = torch.stack([eqn1, eqn2], dim=-1)
 
-        return eqn1 + eqn2 
+        return torch.norm(residual, dim=-1)
 
     ##################################
     # pointwise residual for adaptive sampling (RAD)

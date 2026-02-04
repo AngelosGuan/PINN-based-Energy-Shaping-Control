@@ -302,18 +302,19 @@ class Model(nn.Module):
         
         n = out.size(0)
         o1, o2, o3 = out[:, 0], out[:, 1], out[:, 2]
+        o1_p = torch.nn.functional.softplus(o1) + 1e-3
+        o3_p = torch.nn.functional.softplus(o3) + 1e-3
         
         L = torch.stack(
         [
-            torch.stack([o1, torch.zeros_like(o1, device = X.device)], dim=-1),
-            torch.stack([o2, o3],    dim=-1),
+            torch.stack([o1p, torch.zeros_like(o1, device = X.device)], dim=-1),
+            torch.stack([o2, o3p],    dim=-1),
         ],dim=-2)  # (n,2,2)
 
         #assert_finite('L', L)
 
-        # M =LL^T+eps*I
-        eps = 1e-3
-        Md_hat = L @ L.transpose(-1,-2) + eps*torch.eye(2, device=X.device, dtype=X.dtype).unsqueeze(0)
+
+        Md_hat = L @ L.transpose(-1,-2)
         
         if unbatched:
             Md_hat = Md_hat.squeeze(0)  # [2,2]
