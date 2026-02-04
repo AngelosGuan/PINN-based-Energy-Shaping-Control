@@ -307,8 +307,8 @@ class Model(nn.Module):
         
         L = torch.stack(
         [
-            torch.stack([o1p, torch.zeros_like(o1, device = X.device)], dim=-1),
-            torch.stack([o2, o3p],    dim=-1),
+            torch.stack([o1_p, torch.zeros_like(o1, device = X.device)], dim=-1),
+            torch.stack([o2, o3_p],    dim=-1),
         ],dim=-2)  # (n,2,2)
 
         #assert_finite('L', L)
