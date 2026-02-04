@@ -83,7 +83,7 @@ class customLoss:
         M_inv = custom_inverse(M)        # (B, 4, 4)
 
 
-        if self.pos_def:
+        if model.pos_def:
             # only for KMK, change later
             K = model.forward(X)
             ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
@@ -137,7 +137,7 @@ class customLoss:
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
 
-        if self.pos_def:
+        if model.pos_def:
             # only for KMK, change later
             K = model.forward(X)
             ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
@@ -237,7 +237,7 @@ class customLoss:
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        if self.pos_def:
+        if model.pos_def:
             # only for KMK, change later
             K = model.forward(X)
             ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
