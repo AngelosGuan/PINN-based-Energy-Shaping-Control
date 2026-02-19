@@ -91,7 +91,7 @@ if __name__ == "__main__":
     max_error_threshold = 0.01
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
-    num_epochs_adam = 200
+    num_epochs_adam = 100
     fixed_trainset_size = 3000
     batch_size = config.BATCH_SIZE
 
