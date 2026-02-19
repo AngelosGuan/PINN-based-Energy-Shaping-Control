@@ -38,9 +38,13 @@ if __name__ == "__main__":
     # different configuration and import for different models
     config_opt = args.config_opt
 
-    # default
-    import configs.config_dof2 as config
-    import models.dof2.cholesky_fourier_dof2 as model
+    if config_opt == 1:
+        import configs.config_dof2 as config
+        import models.dof2.fullNN_dof2 as model
+    else:
+        # default
+        import configs.config_dof2 as config
+        import models.dof2.cholesky_fourier_dof2 as model
 
     if not args.seed == -1:
         config.SEED = args.seed

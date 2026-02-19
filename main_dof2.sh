@@ -10,5 +10,5 @@ export VECLIB_MAXIMUM_THREADS="1"
 export NUMEXPR_NUM_THREADS="1"
 export PYTHONHASHSEED="0"
 
-python main_dof4.py --num_epoch_adam 200 --num_epoch_bfgs 0 --model_name dof4_JMJ_512 --config_opt 3 &
+python main_dof2.py --num_epoch_adam 200 --model_name dof2_full --config_opt 1 &
 wait

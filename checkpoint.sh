@@ -10,5 +10,5 @@ export CUBLAS_WORKSPACE_CONFIG=":4096:8"   # or ":16:8"
 #export NUMEXPR_NUM_THREADS="1"
 export PYTHONHASHSEED="0"
 
-python train_from_savedstate_dof4.py --model_name main_training &
+python train_from_savedstate_dof2.py --model_name dof2_full --config_opt 1 &
 wait
