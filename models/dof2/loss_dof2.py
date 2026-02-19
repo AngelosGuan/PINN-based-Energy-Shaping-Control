@@ -261,7 +261,7 @@ class customLoss:
         sparse_loss = self.get_PDE_Loss_trajectory(model, sparse_X).mean()
 
 
-        W1, W2, W3 = 1.0, 100.0, 0.1
+        W1, W2, W3 = 1.0, 0.01, 0.1
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
         total =  W1*residual_loss + W2* Vdmin_loss + W3 * sparse_loss
@@ -278,25 +278,25 @@ class customLoss:
 
         residual_loss = self.get_PDE_Loss_trajectory(model, X).mean()
         
-        # Vd has min at equilibrium
-        w_grad = 1.0
-        w_hess = 1.0
-        x_eq = torch.tensor([0.0, 0.0, 0.0, 0.0], device = X.device, requires_grad=True)
-        Vd_eq = model.calculate_Vd(x_eq).squeeze()
-        grad_Vd = torch.autograd.grad(Vd_eq, x_eq, create_graph=True)[0]
-        grad_q = grad_Vd[:2]
+        # # Vd has min at equilibrium
+        # w_grad = 1.0
+        # w_hess = 1.0
+        # x_eq = torch.tensor([0.0, 0.0, 0.0, 0.0], device = X.device, requires_grad=True)
+        # Vd_eq = model.calculate_Vd(x_eq).squeeze()
+        # grad_Vd = torch.autograd.grad(Vd_eq, x_eq, create_graph=True)[0]
+        # grad_q = grad_Vd[:2]
 
-        # zero grad at x_eq
-        loss_grad = torch.sum(grad_q**2)
+        # # zero grad at x_eq
+        # loss_grad = torch.sum(grad_q**2)
 
-        H = torch.zeros(2, 2, device=X.device)
-        for i in range(2):
-            H[i] = torch.autograd.grad(grad_q[i], x_eq, retain_graph=True)[0][:2]
-        eigvals = torch.linalg.eigvalsh(H)
-        # pos def hessian 
-        loss_hessian = torch.sum(torch.relu(-eigvals))
+        # H = torch.zeros(2, 2, device=X.device)
+        # for i in range(2):
+        #     H[i] = torch.autograd.grad(grad_q[i], x_eq, retain_graph=True)[0][:2]
+        # eigvals = torch.linalg.eigvalsh(H)
+        # # pos def hessian 
+        # loss_hessian = torch.sum(torch.relu(-eigvals))
 
-        Vdmin_loss = loss_Vd_min = w_grad * loss_grad + w_hess * loss_hessian
+        # Vdmin_loss = loss_Vd_min = w_grad * loss_grad + w_hess * loss_hessian
 
 
 
@@ -308,14 +308,15 @@ class customLoss:
         max_error_loss = self.get_PDE_Loss_trajectory(model, max_error).mean()
 
 
-        W1, W2, W3, W4 = 1.0, 100.0, 0.1, 0.1
+        W1, W2, W3, W4 = 1.0, 0.01, 0.01, 0.01
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
-        total =  W1*residual_loss + W2* Vdmin_loss + W3 * sparse_loss + W4*max_error_loss
+        #total =  W1*residual_loss + W2* Vdmin_loss + W3 * sparse_loss + W4*max_error_loss
+        total =  W1*residual_loss + W3 * sparse_loss + W4*max_error_loss
         
         losses = [
             residual_loss.detach().cpu(),
-            Vdmin_loss.detach().cpu(),
+            #Vdmin_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
             max_error_loss.detach().cpu()
         ]
