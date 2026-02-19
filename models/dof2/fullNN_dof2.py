@@ -115,7 +115,7 @@ class MdNet(nn.Module):
         self.OUTPUT_DIM = 3
         self.HIDDEN_WIDTH = 16 # change here
         self.model = nn.Sequential(
-            nn.Linear(in0, self.OUTPUT_DIM),
+            nn.Linear(in0, self.HIDDEN_WIDTH),
             nn.LayerNorm(self.HIDDEN_WIDTH),
             nn.Tanh(),
             nn.Linear(self.HIDDEN_WIDTH, self.HIDDEN_WIDTH),
