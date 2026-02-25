@@ -125,7 +125,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
             else:
                 # late phase (resample every SAMPLE_EVERY epoch)
-                if (ep+1) % SAMPLE_EVERY:
+                if (ep+1) % SAMPLE_EVERY==0:
                     X = adaptive_sampler_late.step(model, X)
                     # setup dataloader
                     dataset = torch.utils.data.TensorDataset(X)
