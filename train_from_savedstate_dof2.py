@@ -144,7 +144,7 @@ if __name__ == "__main__":
             #########################
             # adaptive sampling
             # late phase (resample every SAMPLE_EVERY epoch)
-            if (ep+1) % SAMPLE_EVERY:
+            if (ep+1) % SAMPLE_EVERY==0:
                 X = adaptive_sampler_late.step(model, X)
                 # setup dataloader
                 train_set = torch.cat((X, X_fixed),dim=0)

@@ -72,7 +72,7 @@ class FourierFeatures_Vd(nn.Module):
 
         if gaussian:
             # B: (m, d); fixed by default so it moves with device but doesn't train
-            B = torch.randn(mapping_size, in_dim) * sigma
+            B = torch.randn(mapping_size, in_dim, device=device) * sigma
             self.register_buffer("B", B)
             self.out_dim = 2 * mapping_size
         else:
@@ -218,17 +218,21 @@ class Model(nn.Module):
         """
 
         # if single data, turn into size 1 batch
-        unbatched = False
         if X.ndim == 1:
-            X = X.unsqueeze(0) 
-            unbatched = True
+            return dynamics.calculate_M(X)
+        return torch.vmap(dynamics.calculate_M)(X)
+        
+        # unbatched = False
+        # if X.ndim == 1:
+        #     X = X.unsqueeze(0) 
+        #     unbatched = True
 
-        M_list = [dynamics.calculate_M(x) for x in X]
-        M = torch.stack(M_list, dim=0) 
+        # M_list = [dynamics.calculate_M(x) for x in X]
+        # M = torch.stack(M_list, dim=0) 
 
-        # if unbatched, output accordingly
-        if unbatched:
-            M = M.squeeze(0)  # [4,4]
+        # # if unbatched, output accordingly
+        # if unbatched:
+        #     M = M.squeeze(0)  # [4,4]
 
         return M
 
