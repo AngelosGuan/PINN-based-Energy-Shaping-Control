@@ -45,9 +45,8 @@ def plot_pde_loss_and_states(loss_funcs, model, X, filename, storage_path, print
         storage_path: directory where the plot will be saved
     """
     # Compute PDE loss per trajectory point
-    L1s_alltraj = loss_funcs.get_PDE_Loss_trajectory(model, X).detach().cpu()
-    L1_mean = L1s_alltraj.mean()
-    L1s_alltraj = L1s_alltraj.numpy()
+    L1s_alltraj = loss_funcs.get_PDE_Loss_trajectory(model, X)
+    L1s_alltraj = L1s_alltraj.detach().cpu().numpy()
     X = X.cpu().numpy()
     n, m = X.shape
 
@@ -77,7 +76,7 @@ def plot_pde_loss_and_states(loss_funcs, model, X, filename, storage_path, print
     # Print max and avg to log file if provided
     if print_path is not None:
         max_loss = np.max(L1s_alltraj)
-        avg_loss = L1_mean
+        avg_loss = np.mean(L1s_alltraj)
         with open(print_path, "a") as f:
             print(f"{filename}: max: {max_loss:.7f}, avg: {avg_loss:.7f}", file=f)
 
@@ -85,7 +84,6 @@ def plot_pde_loss_and_states(loss_funcs, model, X, filename, storage_path, print
     del X, L1s_alltraj
     torch.cuda.empty_cache()
     return 
-
 
 def save_model_parameters(model, model_name, storage_path):
     """

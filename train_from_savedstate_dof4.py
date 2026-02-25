@@ -91,7 +91,7 @@ if __name__ == "__main__":
     max_error_threshold = 0.01
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
-    num_epochs_adam = 100
+    num_epochs_adam = 20
     fixed_trainset_size = 3000
     batch_size = config.BATCH_SIZE
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
         pool_mult=8,                 
         k=1.0,                       
         c=1.0,                       
-        batch_size=32768,                
+        batch_size=16384,                
         eps=1e-12
     )
 
@@ -149,7 +149,7 @@ if __name__ == "__main__":
             #########################
             # adaptive sampling
             # late phase (resample every SAMPLE_EVERY epoch)
-            if (ep+1) % SAMPLE_EVERY:
+            if (ep+1) % SAMPLE_EVERY==0:
                 X = adaptive_sampler_late.step(model, X)
                 # setup dataloader
                 train_set = torch.cat((X, X_fixed),dim=0)

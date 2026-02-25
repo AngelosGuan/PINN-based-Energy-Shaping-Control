@@ -83,15 +83,15 @@ class customLoss:
         M_inv = custom_inverse(M)        # (B, 4, 4)
 
 
-        # if model.pos_def:
-        #     # only for KMK, change later
-        #     K = model.forward(X)
-        #     ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-        #     ks_inv = 1.0 / ks
-        #     K_inv = torch.diag_embed(ks_inv)
-        #     M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
-        # else:
-        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+        if model.pos_def:
+            # only for KMK, change later
+            K = model.forward(X)
+            ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
+            ks_inv = 1.0 / ks
+            K_inv = torch.diag_embed(ks_inv)
+            M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+        else:
+            M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
 
 
@@ -137,15 +137,15 @@ class customLoss:
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
 
-        # if model.pos_def:
-        #     # only for KMK, change later
-        #     K = model.forward(X)
-        #     ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-        #     ks_inv = 1.0 / ks
-        #     K_inv = torch.diag_embed(ks_inv)
-        #     M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
-        # else:
-        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+        if model.pos_def:
+            # only for KMK, change later
+            K = model.forward(X)
+            ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
+            ks_inv = 1.0 / ks
+            K_inv = torch.diag_embed(ks_inv)
+            M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+        else:
+            M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
         # TODO: make this batch safe
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
@@ -237,15 +237,15 @@ class customLoss:
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        # if model.pos_def:
-        #     # only for KMK, change later
-        #     K = model.forward(X)
-        #     ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-        #     ks_inv = 1.0 / ks
-        #     K_inv = torch.diag_embed(ks_inv)
-        #     M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
-        # else:
-        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+        if model.pos_def:
+            # only for KMK, change later
+            K = model.forward(X)
+            ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
+            ks_inv = 1.0 / ks
+            K_inv = torch.diag_embed(ks_inv)
+            M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
+        else:
+            M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
         # TODO: make this batch safe
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
