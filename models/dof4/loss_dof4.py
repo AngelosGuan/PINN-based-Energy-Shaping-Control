@@ -267,11 +267,10 @@ class customLoss:
 
 
         # eig_loss for better conditioning
-        M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
+        #M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
         eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
         cond_hat = eigvals_hat.max(dim=-1).values / eigvals_hat.min(dim=-1).values
-        cond_M = M_eigvals.max(dim=-1).values / M_eigvals.min(dim=-1).values
-        cond_loss = ((cond_hat - target_cond)**2).mean()
+        cond_loss = ((cond_hat-1)**2).mean()
 
         # sparse_loss
         sparse_X = uniform_sampling(n_samples=100, input_dim=model.INPUT_DIM, device=X.device,

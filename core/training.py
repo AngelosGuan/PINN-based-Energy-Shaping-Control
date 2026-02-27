@@ -37,7 +37,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
 
     # setup dataloader
     dataset = torch.utils.data.TensorDataset(X)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
     # Initialize optimizers
     # adam
@@ -122,14 +122,14 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                     X = adaptive_sampler_early.step(model, X)
                     # setup dataloader
                     dataset = torch.utils.data.TensorDataset(X)
-                    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+                    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
             else:
                 # late phase (resample every SAMPLE_EVERY epoch)
                 if (ep+1) % SAMPLE_EVERY==0:
                     X = adaptive_sampler_late.step(model, X)
                     # setup dataloader
                     dataset = torch.utils.data.TensorDataset(X)
-                    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+                    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
         
 
             # using minibatch

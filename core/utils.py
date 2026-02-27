@@ -133,13 +133,26 @@ def set_seed(seed):
 
 ########################################################################
 # compute gradient norm
+# def compute_gradient_norm(model):
+#     total_norm = 0
+#     for param in model.parameters():
+#         if param.grad is not None:
+#             param_norm = param.grad.detach().data.norm(2)
+#             total_norm += param_norm.item() ** 2
+#     return total_norm ** 0.5
+
+# compute gradient norm
+# refactor to compute on gpu
 def compute_gradient_norm(model):
-    total_norm = 0
-    for param in model.parameters():
-        if param.grad is not None:
-            param_norm = param.grad.detach().data.norm(2)
-            total_norm += param_norm.item() ** 2
-    return total_norm ** 0.5
+    # stay on device, no per-param .item()
+    norms = [
+        p.grad.detach().norm(2) ** 2
+        for p in model.parameters()
+        if p.grad is not None
+    ]
+    if not norms:
+        return 0.0
+    return (torch.sum(torch.stack(norms)) ** 0.5).item()
 
 ########################################################
 def gradients_all_zero(model):

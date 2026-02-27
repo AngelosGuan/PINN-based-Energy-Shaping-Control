@@ -111,7 +111,7 @@ if __name__ == "__main__":
     X_fixed = sampling.lhs_sampling(n_samples=fixed_trainset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     train_set = torch.cat((X, X_fixed),dim=0)
     dataset = torch.utils.data.TensorDataset(train_set)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
     # gather a fixed max error set
     res_fixed = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed).view(-1)
@@ -158,7 +158,7 @@ if __name__ == "__main__":
                 # setup dataloader
                 train_set = torch.cat((X, X_fixed),dim=0)
                 dataset = torch.utils.data.TensorDataset(train_set)
-                dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+                dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
             # using minibatch
             for (batch,) in dataloader:
