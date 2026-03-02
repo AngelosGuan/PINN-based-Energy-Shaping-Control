@@ -63,12 +63,12 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
 
     ############################################
     # build proposal sampler and RAD sampler
-    sobel_proposal = sampling.make_proposal(sampling.sobel_sampling, dynamics.LOWER_BOUNDS, dynamics.UPPER_BOUNDS, device, model.INPUT_DIM)
+    sobol_proposal = sampling.make_proposal(sampling.sobol_sampling, dynamics.LOWER_BOUNDS, dynamics.UPPER_BOUNDS, device, model.INPUT_DIM)
 
     # replace less more frequently early
     adaptive_sampler_early = sampling.AdaptiveSamplerRAD(
         residual_fn = loss_funcs.residual_pointwise,                
-        proposal_sampler = sobel_proposal,
+        proposal_sampler = sobol_proposal,
         replace_frac=EARLY_REPLACE,           
         pool_mult=8,                 
         k=1.0,                       
@@ -80,7 +80,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
     # replace more less frequently late
     adaptive_sampler_late = sampling.AdaptiveSamplerRAD(
         residual_fn = loss_funcs.residual_pointwise,                
-        proposal_sampler = sobel_proposal,
+        proposal_sampler = sobol_proposal,
         replace_frac=REPLACE_RATE,           
         pool_mult=8,                 
         k=1.0,                       
