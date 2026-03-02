@@ -7,7 +7,7 @@ WARM_UP = 20
 HIDDEN_WIDTH = 8
 
 # batch size
-BATCH_SIZE = 64
+BATCH_SIZE = 1000 # 64 originally
 
 # seed
 SEED = 60
