@@ -308,7 +308,7 @@ class customLoss:
         max_error_loss = self.get_PDE_Loss_trajectory(model, max_error).mean()
 
 
-        W1, W2, W3, W4 = 1.0, 0.01, 0.01, 0.01
+        W1, W2, W3, W4 = 1.0, 0.001, 0.001, 0.001
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
         #total =  W1*residual_loss + W2* Vdmin_loss + W3 * sparse_loss + W4*max_error_loss
