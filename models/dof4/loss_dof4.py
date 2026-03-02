@@ -155,7 +155,7 @@ class customLoss:
         eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
         cond_hat = eigvals_hat.max(dim=-1).values / eigvals_hat.min(dim=-1).values
         cond_M = M_eigvals.max(dim=-1).values / M_eigvals.min(dim=-1).values
-        cond_loss = ((cond_hat - target_cond)**2).mean()
+        cond_loss = ((cond_hat - 1.0)**2).mean()
 
         # loss that encourages curvature 
         # Encourage M_hat to vary with q (avoid constant / identity solution).
