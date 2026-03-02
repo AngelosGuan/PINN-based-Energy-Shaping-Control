@@ -149,7 +149,7 @@ if __name__ == "__main__":
                 # setup dataloader
                 train_set = torch.cat((X, X_fixed),dim=0)
                 dataset = torch.utils.data.TensorDataset(train_set)
-                dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+                dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
             # using minibatch
             for (batch,) in dataloader:

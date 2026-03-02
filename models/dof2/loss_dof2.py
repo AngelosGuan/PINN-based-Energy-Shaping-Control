@@ -312,7 +312,9 @@ class customLoss:
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
         #total =  W1*residual_loss + W2* Vdmin_loss + W3 * sparse_loss + W4*max_error_loss
-        total =  W1*residual_loss + W3 * sparse_loss + W4*max_error_loss
+        total =  W1*residual_loss + W3 * sparse_loss 
+
+        # do not use max_error set
         
         losses = [
             residual_loss.detach().cpu(),
