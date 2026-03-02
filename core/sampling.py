@@ -59,42 +59,87 @@ def lhs_sampling(n_samples=5000, input_dim=4, device='cpu',
 
 ########################################################################
 # Sobol Sequence with automatic inactive dimension handling
+# def sobol_sampling(n_samples=4096, input_dim=4, device='cpu',
+#                    lower_bounds=None, upper_bounds=None, seed=config.SEED):
+#     """
+#     Sobol Sequence Sampling with automatic detection of inactive dimensions.
+#     n_samples should ideally be a power of 2 for best Sobol performance.
+#     """
+#     # Validate and convert bounds to numpy arrays
+#     lower_bounds, upper_bounds = _validate_bounds(lower_bounds, upper_bounds, input_dim)
+#     lower_bounds = np.array(lower_bounds)
+#     upper_bounds = np.array(upper_bounds)
+
+#     # Identify active indices (where lower != upper)
+#     active_indices = np.where(lower_bounds != upper_bounds)[0]
+#     fixed_indices = np.where(lower_bounds == upper_bounds)[0]
+
+#     active_dim = len(active_indices)
+#     if active_dim == 0:
+#         raise ValueError("All dimensions are fixed; no active dimensions to sample.")
+
+#     # Sample only over active dimensions
+#     sampler = qmc.Sobol(d=active_dim, scramble=True, seed=seed)
+#     active_samples = sampler.random(n=n_samples)
+
+#     # Scale active samples
+#     scaled_active = qmc.scale(active_samples,
+#                               lower_bounds[active_indices],
+#                               upper_bounds[active_indices])
+
+#     # Initialize full sample array and insert fixed values
+#     full_samples = np.zeros((n_samples, input_dim))
+#     full_samples[:, active_indices] = scaled_active
+
+#     for idx in fixed_indices:
+#         full_samples[:, idx] = lower_bounds[idx]  # or upper_bounds[idx], same value
+
+#     return torch.tensor(full_samples, dtype=torch.float32, device=device, requires_grad=False)
+
 def sobol_sampling(n_samples=4096, input_dim=4, device='cpu',
                    lower_bounds=None, upper_bounds=None, seed=config.SEED):
     """
     Sobol Sequence Sampling with automatic detection of inactive dimensions.
     n_samples should ideally be a power of 2 for best Sobol performance.
     """
-    # Validate and convert bounds to numpy arrays
+
+    device = torch.device(device)
+
+    # Validate bounds
     lower_bounds, upper_bounds = _validate_bounds(lower_bounds, upper_bounds, input_dim)
-    lower_bounds = np.array(lower_bounds)
-    upper_bounds = np.array(upper_bounds)
 
-    # Identify active indices (where lower != upper)
-    active_indices = np.where(lower_bounds != upper_bounds)[0]
-    fixed_indices = np.where(lower_bounds == upper_bounds)[0]
+    lb = torch.as_tensor(lower_bounds, dtype=torch.float32, device=device)
+    ub = torch.as_tensor(upper_bounds, dtype=torch.float32, device=device)
 
-    active_dim = len(active_indices)
+    # Active / fixed dimensions
+    active_mask = lb != ub
+    active_indices = torch.where(active_mask)[0]
+    fixed_indices  = torch.where(~active_mask)[0]
+
+    active_dim = active_indices.numel()
     if active_dim == 0:
         raise ValueError("All dimensions are fixed; no active dimensions to sample.")
 
-    # Sample only over active dimensions
-    sampler = qmc.Sobol(d=active_dim, scramble=True, seed=seed)
-    active_samples = sampler.random(n=n_samples)
+    # ---- Sobol engine (Torch native) ----
+    engine = torch.quasirandom.SobolEngine(
+        dimension=active_dim,
+        scramble=True,
+        seed=seed
+    )
 
-    # Scale active samples
-    scaled_active = qmc.scale(active_samples,
-                              lower_bounds[active_indices],
-                              upper_bounds[active_indices])
+    # Generate directly on target device
+    u = engine.draw(n_samples).to(device)   # shape: (n_samples, active_dim)
 
-    # Initialize full sample array and insert fixed values
-    full_samples = np.zeros((n_samples, input_dim))
-    full_samples[:, active_indices] = scaled_active
+    # Scale from [0,1] → [lb, ub]
+    lb_active = lb[active_indices]
+    ub_active = ub[active_indices]
+    scaled_active = lb_active + u * (ub_active - lb_active)
 
-    for idx in fixed_indices:
-        full_samples[:, idx] = lower_bounds[idx]  # or upper_bounds[idx], same value
+    # Assemble full tensor
+    full = lb.expand(n_samples, input_dim).clone()
+    full[:, active_indices] = scaled_active
 
-    return torch.tensor(full_samples, dtype=torch.float32, device=device, requires_grad=False)
+    return full  
 
 ########################################################################
 # uniform random
