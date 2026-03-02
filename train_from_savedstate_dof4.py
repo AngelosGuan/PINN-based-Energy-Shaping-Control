@@ -21,9 +21,7 @@ debug = 1
 result_path = "results"
 
 if __name__ == "__main__":
-    # get total memory
-    total_mem = torch.cuda.get_device_properties(device).total_memory
-
+    
     # parse command line argument for gpu and cpu resourse
     parser = argparse.ArgumentParser(description="Training for 4DOF dynamic model")
     parser.add_argument(
@@ -80,6 +78,10 @@ if __name__ == "__main__":
 
     # detect device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # get total memory
+    total_mem = torch.cuda.get_device_properties(device).total_memory
+
 
     # create loss function
     loss_funcs = loss.customLoss()
