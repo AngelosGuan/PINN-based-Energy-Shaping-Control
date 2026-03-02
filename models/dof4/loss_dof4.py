@@ -303,7 +303,7 @@ class customLoss:
         sparse_loss, _ = self.get_PDE_Loss(model, sparse_X)
 
         # max error loss
-        max_error_loss, _ = self.get_PDE_Loss(model, max_error)
+        #max_error_loss, _ = self.get_PDE_Loss(model, max_error)
 
 
         #### not used
@@ -325,7 +325,7 @@ class customLoss:
             #eig_loss.detach().cpu(),
             #pos_def_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
-            max_error_loss.detach().cpu()
+            #max_error_loss.detach().cpu()
         ]
         return total, losses
 
