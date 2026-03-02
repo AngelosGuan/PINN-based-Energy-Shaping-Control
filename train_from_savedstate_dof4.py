@@ -13,9 +13,16 @@ import numpy as np
 from core.utils import compute_gradient_norm
 import traceback
 
+# for debug
+import time
+
+debug = 1
+
 result_path = "results"
 
 if __name__ == "__main__":
+    # get total memory
+    total_mem = torch.cuda.get_device_properties(device).total_memory
 
     # parse command line argument for gpu and cpu resourse
     parser = argparse.ArgumentParser(description="Training for 4DOF dynamic model")
@@ -125,12 +132,12 @@ if __name__ == "__main__":
 
     ############################################
     # build proposal sampler and RAD sampler
-    lhs_proposal = sampling.make_proposal(sampling.lhs_sampling, dynamics.LOWER_BOUNDS, dynamics.UPPER_BOUNDS, device, model.INPUT_DIM)
+    sobel_proposal = sampling.make_proposal(sampling.sobel_sampling, dynamics.LOWER_BOUNDS, dynamics.UPPER_BOUNDS, device, model.INPUT_DIM)
 
     # replace more less frequently late
     adaptive_sampler_late = sampling.AdaptiveSamplerRAD(
         residual_fn = loss_funcs.residual_pointwise,                
-        proposal_sampler = lhs_proposal,
+        proposal_sampler = sobel_proposal,
         replace_frac=REPLACE_RATE,           
         pool_mult=8,                 
         k=1.0,                       
@@ -146,15 +153,31 @@ if __name__ == "__main__":
             loss_lists = [[] for _ in range(num_losses)]
             minibatch_grad_norms = []
 
+
+
             #########################
             # adaptive sampling
             # late phase (resample every SAMPLE_EVERY epoch)
             if (ep+1) % SAMPLE_EVERY==0:
+
+                if debug:
+                    start_time = time.perf_counter()
+
                 X = adaptive_sampler_late.step(model, X)
                 # setup dataloader
                 train_set = torch.cat((X, X_fixed),dim=0)
                 dataset = torch.utils.data.TensorDataset(train_set)
                 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+                if debug:
+                    # Record the end time
+                    end_time = time.perf_counter()
+                    # Calculate and print the elapsed time
+                    elapsed_time = end_time - start_time
+                    print(f"At Epoch {ep:d}, Adaptive Sampling Elapsed time: {elapsed_time:.4f} seconds")
+
+            if debug:
+                start_time = time.perf_counter()
 
             # using minibatch
             for (batch,) in dataloader:
@@ -175,17 +198,42 @@ if __name__ == "__main__":
                     loss_lists[i].append(loss_val)
 
                 # clear GPU memory every minibatch to prevent overflow
+
+                # Optional memory guard
+                allocated = torch.cuda.memory_allocated(device)
+                if allocated / total_mem > 0.90:   # 90% usage threshold
+                    print("near OOM GPU cache clean triggered.")
+                    torch.cuda.empty_cache()
+
                 del train_loss_batch, losses
-                torch.cuda.empty_cache()
+
+            if debug:
+                # Record the end time
+                end_time = time.perf_counter()
+                # Calculate and print the elapsed time
+                elapsed_time = end_time - start_time
+                print(f"At Epoch {ep:d}, Compute Losses for all data Elapsed time: {elapsed_time:.4f} seconds")
 
             # log losses of all the minibatches
             train_loss_epoch.append(np.mean(train_loss))
             for i, loss_list in enumerate(loss_lists):
                 losses_epoch[i].append(np.mean(loss_list))
 
+
+            if debug:
+                # Record the start time
+                start_time = time.perf_counter()
+
             # compute grad norm
             avg_grad_norm  = np.mean(minibatch_grad_norms)
             grad_norm_epoch.append(avg_grad_norm)
+
+            if debug:
+                # Record the end time
+                end_time = time.perf_counter()
+                # Calculate and print the elapsed time
+                elapsed_time = end_time - start_time
+                print(f"At Epoch {ep:d}, Compute gradient loss Elapsed time: {elapsed_time:.4f} seconds")
 
             # print progress
             if ep % 10 == 0 or ep == num_epochs_adam - 1:

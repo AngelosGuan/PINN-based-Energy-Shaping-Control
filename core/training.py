@@ -6,6 +6,10 @@ import core.sampling as sampling
 import models.dof4.dynamics as dynamics
 import traceback
 
+# for debug
+import time
+
+debug = 1
 
 ########################################################################
 # adam optimizer
@@ -63,12 +67,13 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
 
     ############################################
     # build proposal sampler and RAD sampler
-    lhs_proposal = sampling.make_proposal(sampling.lhs_sampling, dynamics.LOWER_BOUNDS, dynamics.UPPER_BOUNDS, device, model.INPUT_DIM)
+    sobel_proposal = sampling.make_proposal(sampling.sobol_sampling, dynamics.LOWER_BOUNDS, dynamics.UPPER_BOUNDS, device, model.INPUT_DIM)
+
 
     # replace less more frequently early
     adaptive_sampler_early = sampling.AdaptiveSamplerRAD(
         residual_fn = loss_funcs.residual_pointwise,                
-        proposal_sampler = lhs_proposal,
+        proposal_sampler = sobel_proposal, # use sobel here for gpu
         replace_frac=EARLY_REPLACE,           
         pool_mult=8,                 
         k=1.0,                       
@@ -80,7 +85,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
     # replace more less frequently late
     adaptive_sampler_late = sampling.AdaptiveSamplerRAD(
         residual_fn = loss_funcs.residual_pointwise,                
-        proposal_sampler = lhs_proposal,
+        proposal_sampler = sobel_proposal,
         replace_frac=REPLACE_RATE,           
         pool_mult=8,                 
         k=1.0,                       
@@ -112,25 +117,53 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
             loss_lists = [[] for _ in range(num_losses)]
             minibatch_grad_norms = []
 
-
-            #########################
             # adaptive sampling
             if ep < EARLY_STAGE_LEN:
+
                 # early phase (first 20 epoch, resample every 2 epoch)
                 if (ep+1)%SAMPLE_EVERY_EARLY == 0:
+
+                    if debug:
+                        # Record the start time
+                        start_time = time.perf_counter()
+
                     # resample with adaptive sampling
                     X = adaptive_sampler_early.step(model, X)
                     # setup dataloader
                     dataset = torch.utils.data.TensorDataset(X)
                     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+                    if debug:
+                        # Record the end time
+                        end_time = time.perf_counter()
+                        # Calculate and print the elapsed time
+                        elapsed_time = end_time - start_time
+                        print(f"At Epoch {ep:d}, Adaptive Sampling Elapsed time: {elapsed_time:.4f} seconds")
             else:
                 # late phase (resample every SAMPLE_EVERY epoch)
                 if (ep+1) % SAMPLE_EVERY==0:
+                                    
+                    if debug:
+                        # Record the start time
+                        start_time = time.perf_counter()
+
                     X = adaptive_sampler_late.step(model, X)
                     # setup dataloader
                     dataset = torch.utils.data.TensorDataset(X)
                     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
-        
+
+                    if debug:
+                        # Record the end time
+                        end_time = time.perf_counter()
+                        # Calculate and print the elapsed time
+                        elapsed_time = end_time - start_time
+                        print(f"At Epoch {ep:d}, Adaptive Sampling Elapsed time: {elapsed_time:.4f} seconds")
+
+
+
+            if debug:
+                # Record the start time
+                start_time = time.perf_counter()
 
             # using minibatch
             for (batch,) in dataloader:
@@ -157,6 +190,13 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
                 # clear GPU memory every minibatch to prevent overflow
                 del train_loss_batch, losses
                 torch.cuda.empty_cache()
+            
+            if debug:
+                # Record the end time
+                end_time = time.perf_counter()
+                # Calculate and print the elapsed time
+                elapsed_time = end_time - start_time
+                print(f"At Epoch {ep:d}, Compute Losses for all data Elapsed time: {elapsed_time:.4f} seconds")
 
             # log losses of all the minibatches
             train_loss_epoch.append(np.mean(train_loss))
@@ -167,10 +207,21 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
             if ep < WARM_UP:
                 scheduler.step()
 
+            if debug:
+                # Record the start time
+                start_time = time.perf_counter()
+
             # compute grad norm
             avg_grad_norm  = np.mean(minibatch_grad_norms)
             grad_norm_epoch.append(avg_grad_norm)
 
+            if debug:
+                # Record the end time
+                end_time = time.perf_counter()
+                # Calculate and print the elapsed time
+                elapsed_time = end_time - start_time
+                print(f"At Epoch {ep:d}, Compute gradient loss Elapsed time: {elapsed_time:.4f} seconds")
+                
             # print progress
             if ep % 10 == 0 or ep == num_epochs_adam - 1:
                 with open(print_path, "a") as f:
