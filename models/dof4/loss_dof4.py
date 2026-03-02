@@ -211,7 +211,7 @@ class customLoss:
             sparse_loss.detach().cpu(),
             #pos_def_loss.detach().cpu(),
             curvature_loss.detach().cpu(),
-            cond_loss.detatch().cpu()
+            cond_loss.detach().cpu()
         ]
         return total, losses
 
