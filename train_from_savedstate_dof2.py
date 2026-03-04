@@ -97,9 +97,9 @@ if __name__ == "__main__":
     # add 10000 lhs sample
 
     # use purely random sample from start.
-    X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X = sampling.sobol_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
 
-    X_fixed = sampling.lhs_sampling(n_samples=fixed_trainset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X_fixed = sampling.sobol_sampling(n_samples=fixed_trainset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     train_set = torch.cat((X, X_fixed),dim=0)
     dataset = torch.utils.data.TensorDataset(train_set)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
@@ -115,17 +115,17 @@ if __name__ == "__main__":
     # save losses for logging
     train_loss_epoch = []
     grad_norm_epoch = []
-    num_losses  = 4
+    num_losses  = 3
     losses_epoch = [[] for _ in range(num_losses)]
 
     ############################################
     # build proposal sampler and RAD sampler
-    lhs_proposal = sampling.make_proposal(sampling.lhs_sampling, dynamics.LOWER_BOUNDS, dynamics.UPPER_BOUNDS, device, model.INPUT_DIM)
+    sobol_proposal = sampling.make_proposal(sampling.sobol_sampling, dynamics.LOWER_BOUNDS, dynamics.UPPER_BOUNDS, device, model.INPUT_DIM)
 
     # replace more less frequently late
     adaptive_sampler_late = sampling.AdaptiveSamplerRAD(
         residual_fn = loss_funcs.residual_pointwise,                
-        proposal_sampler = lhs_proposal,
+        proposal_sampler = sobol_proposal,
         replace_frac=REPLACE_RATE,           
         pool_mult=8,                 
         k=1.0,                       
