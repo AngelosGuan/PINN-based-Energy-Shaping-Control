@@ -99,7 +99,7 @@ if __name__ == "__main__":
                  fourier_logspace=True).to(device)
 
     # create training data from sampling
-    X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X = sampling.sobol_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     
     # call train
     (train_loss_epoch, grad_norm_epoch, 

@@ -218,7 +218,7 @@ class customLoss:
 
     #####################################################
     # new total loss with max error loss
-    def total_loss_checkpoint(self, model, X, max_error):
+    def total_loss_checkpoint(self, model, X):
 
         # X shape: (B, 8)
         q_dot = X[:, 4:]  # (B, 4)
@@ -280,7 +280,7 @@ class customLoss:
         sparse_loss, _ = self.get_PDE_Loss(model, sparse_X)
 
         # max error loss
-        max_error_loss, _ = self.get_PDE_Loss(model, max_error)
+        #max_error_loss, _ = self.get_PDE_Loss(model, max_error)
 
         # loss that encourages curvature 
         # Encourage M_hat to vary with q (avoid constant / identity solution).
@@ -324,7 +324,7 @@ class customLoss:
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
         #total =  W1*residual_loss + W2*max_error_loss + W3* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.1*pos_def_loss
-        total =  1.0* residual_loss + 0.1*sparse_loss + 0.001*max_error_loss + 0.01*curvature_loss + 0.01* cond_loss
+        total =  1.0* residual_loss + 0.1*sparse_loss + 0.01*curvature_loss + 0.01* cond_loss
         
         losses = [
             residual_loss.detach().cpu(),
@@ -333,7 +333,7 @@ class customLoss:
             #eig_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
             #pos_def_loss.detach().cpu(),
-            max_error_loss.detach().cpu(),
+            #max_error_loss.detach().cpu(),
             curvature_loss.detach().cpu(),
             cond_loss.detatch().cpu()
 

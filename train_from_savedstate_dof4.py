@@ -92,7 +92,7 @@ if __name__ == "__main__":
     
     # train with custom settings
     ############################
-    max_error_threshold = 0.01
+    max_error_threshold = 0.1
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
     num_epochs_adam = 200
@@ -106,19 +106,19 @@ if __name__ == "__main__":
     # add 10000 lhs sample
 
     # use purely random sample from start.
-    X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X = sampling.sobol_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
 
-    X_fixed = sampling.lhs_sampling(n_samples=fixed_trainset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X_fixed = sampling.sobol_sampling(n_samples=fixed_trainset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     train_set = torch.cat((X, X_fixed),dim=0)
     dataset = torch.utils.data.TensorDataset(train_set)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
     # gather a fixed max error set
-    res_fixed = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed).view(-1)
-    res_adapt = loss_funcs.get_PDE_Loss_trajectory(model, X).view(-1)
+    #res_fixed = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed).view(-1)
+    #res_adapt = loss_funcs.get_PDE_Loss_trajectory(model, X).view(-1)
 
-    mask_f, mask_a = res_fixed > max_error_threshold, res_adapt > max_error_threshold
-    max_error_set = torch.cat([X_fixed[mask_f], X[mask_a]]).clone().to(device)
+    #mask_f, mask_a = res_fixed > max_error_threshold, res_adapt > max_error_threshold
+    #max_error_set = torch.cat([X_fixed[mask_f], X[mask_a]]).clone().to(device)
     
 
     # save losses for logging
@@ -163,7 +163,7 @@ if __name__ == "__main__":
             # using minibatch
             for (batch,) in dataloader:
                 batch = batch.to(device)
-                train_loss_batch, losses = loss_funcs.total_loss_checkpoint(model, batch, max_error_set)
+                train_loss_batch, losses = loss_funcs.total_loss_checkpoint(model, batch)
                 
                 # TODO: schedule gradient descent alteratively for different loss if needed or adjust learning rate
                 # backward prop
