@@ -22,6 +22,7 @@ NUM_DEPTH = 2
 # max grad norm
 MAX_GRAD = 100.0
 
+
 # training size
 num_train_data = 15000
 
@@ -29,8 +30,8 @@ num_train_data = 15000
 testset_size = 5000
 
 # adaptive sampling
-SAMPLE_EVERY = 100 #30
-REPLACE_RATE = 0.001 #0.1
+SAMPLE_EVERY = 50 #30
+REPLACE_RATE = 0.01 #0.1
 
 EARLY_STAGE_LEN = 50
 EARLY_REPLACE = 0.02
