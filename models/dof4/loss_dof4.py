@@ -151,11 +151,12 @@ class customLoss:
         # eig_loss = penalties.mean()
 
         # eig_loss for better conditioning
-        M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
+        #M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
+        #cond_M = M_eigvals.max(dim=-1).values / M_eigvals.min(dim=-1).values
+        eps = 1e-6
         eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
-        cond_hat = eigvals_hat.max(dim=-1).values / eigvals_hat.min(dim=-1).values
-        cond_M = M_eigvals.max(dim=-1).values / M_eigvals.min(dim=-1).values
-        cond_loss = ((cond_hat - 1.0)**2).mean()
+        cond_hat = eigvals_hat.max(dim=-1).values / (eigvals_hat.min(dim=-1).values + eps)
+        cond_loss = (torch.log(cond_hat)**2).mean()
 
         # loss that encourages curvature 
         # Encourage M_hat to vary with q (avoid constant / identity solution).
@@ -201,7 +202,7 @@ class customLoss:
         #W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.0001*pos_def_loss
 
-        total =  1.0* residual_loss + 1/1000 * control_loss + 0.1*sparse_loss + 1e-4*curvature_loss + 0.01* cond_loss
+        total =  1.0* residual_loss + 1/1000 * control_loss + 0.1*sparse_loss + 0.01*curvature_loss + 0.01* cond_loss
 
         losses = [
             residual_loss.detach().cpu(),
@@ -268,9 +269,10 @@ class customLoss:
 
         # eig_loss for better conditioning
         #M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
+        eps = 1e-6
         eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
-        cond_hat = eigvals_hat.max(dim=-1).values / eigvals_hat.min(dim=-1).values
-        cond_loss = ((cond_hat-1)**2).mean()
+        cond_hat = eigvals_hat.max(dim=-1).values / (eigvals_hat.min(dim=-1).values + eps)
+        cond_loss = (torch.log(cond_hat)**2).mean()
 
         # sparse_loss
         sparse_X = uniform_sampling(n_samples=100, input_dim=model.INPUT_DIM, device=X.device,
@@ -322,7 +324,7 @@ class customLoss:
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
         #total =  W1*residual_loss + W2*max_error_loss + W3* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.1*pos_def_loss
-        total =  1.0* residual_loss + 0.1*sparse_loss + 0.001*max_error_loss + 1e-4*curvature_loss + 0.01* cond_loss
+        total =  1.0* residual_loss + 0.1*sparse_loss + 0.001*max_error_loss + 0.01*curvature_loss + 0.01* cond_loss
         
         losses = [
             residual_loss.detach().cpu(),
