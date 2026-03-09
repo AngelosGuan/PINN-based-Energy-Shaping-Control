@@ -202,7 +202,7 @@ class customLoss:
         #W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.0001*pos_def_loss
 
-        total =  1.0* residual_loss + 1/1000 * control_loss + 0.1*sparse_loss + 0.01*curvature_loss + 0.01* cond_loss
+        total =  1.0* residual_loss + 1/1000 * control_loss + 0.1*sparse_loss + 0.1*curvature_loss + 0.1* cond_loss
 
         losses = [
             residual_loss.detach().cpu(),
@@ -324,7 +324,7 @@ class customLoss:
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
         #total =  W1*residual_loss + W2*max_error_loss + W3* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss + 0.1*pos_def_loss
-        total =  1.0* residual_loss + 0.1*sparse_loss + 0.01*curvature_loss + 0.01* cond_loss
+        total =  1.0* residual_loss + 0.1*sparse_loss + 0.1*curvature_loss + 0.01* cond_loss
         
         losses = [
             residual_loss.detach().cpu(),

@@ -186,7 +186,7 @@ def load_checkpoint(model, optimizer, storage_path, scheduler=None, device='cpu'
     print(f"Checkpoint loaded from: {filepath}, at epoch {epoch}")
     return epoch, X
 
-def save_losses(storage_path, total_epoch, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch):
+def save_losses(storage_path, total_epoch, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch):
     filename = f"losses.npz"
     path = os.path.abspath(os.path.join(storage_path, filename))
     np.savez_compressed(
@@ -198,7 +198,6 @@ def save_losses(storage_path, total_epoch, train_loss_epoch, grad_norm_epoch, L1
         L3=np.array(L3_epoch),
         L4=np.array(L4_epoch),
         L5=np.array(L5_epoch),
-        L6=np.array(L6_epoch),
         total_epoch=np.array([total_epoch], dtype=np.int32),
     )
 
