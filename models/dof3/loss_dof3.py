@@ -198,6 +198,16 @@ class customLoss:
                      lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
         sparse_loss, _ = self.get_PDE_Loss(model, sparse_X)
 
+        # prevent trivial solution 
+        delta = 1e-3
+        eps   = 1e-5
+        out = model.forward(X)
+        out_norm = torch.norm(out, dim=-1)
+        x_norm = torch.norm(X, dim=-1)
+
+        loss = - torch.exp(-(out_norm**2)/(delta**2)) * (1 - torch.exp(-(x_norm**2)))
+        zero_loss = loss.mean()
+
 
         #### not used
 
@@ -211,14 +221,15 @@ class customLoss:
         # W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
-        total =  1.0*residual_loss + 0.001* control_loss + 0.01*sparse_loss + 0.01*curvature_loss + 0.1* cond_loss
+        total =  1.0*residual_loss + 0.001* control_loss + 0.01*sparse_loss + 0.01*curvature_loss + 0.1* cond_loss + 0.001 * zero_loss
         
         losses = [
             residual_loss.detach().cpu(),
             control_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
             curvature_loss.detach().cpu(),
-            cond_loss.detach().cpu()
+            cond_loss.detach().cpu(),
+            zero_loss.detach().cpu()
         ]
         return total, losses
 
@@ -316,15 +327,29 @@ class customLoss:
         # assert len(weights) == 5
         # W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
 
+        # prevent trivial solution 
+        delta = 1e-3
+        eps   = 1e-5
+        lam   = 1e-4
+        out = model.forward(X)
+        out_norm = torch.norm(out, dim=-1)
+        x_norm = torch.norm(X, dim=-1)
+
+        loss = - torch.exp(-(out_norm**2)/(delta**2)) * (1 - torch.exp(-(x_norm**2)))
+        zero_loss = loss.mean()
+
+
+
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
-        total =  1.0*residual_loss + 0.001* control_loss + 0.01*sparse_loss + 0.01*curvature_loss + 0.1* cond_loss
+        total =  1.0*residual_loss + 0.001* control_loss + 0.01*sparse_loss + 0.01*curvature_loss + 0.1* cond_loss + 0.001*zero_loss
         
         losses = [
             residual_loss.detach().cpu(),
             control_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
             curvature_loss.detach().cpu(),
-            cond_loss.detach().cpu()
+            cond_loss.detach().cpu(),
+            zero_loss.detach().cpu()
         ]
         return total, losses
 

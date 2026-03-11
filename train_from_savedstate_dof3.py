@@ -116,7 +116,7 @@ if __name__ == "__main__":
     # save losses for logging
     train_loss_epoch = []
     grad_norm_epoch = []
-    num_losses  = 5
+    num_losses  = 6
     losses_epoch = [[] for _ in range(num_losses)]
 
     ############################################
@@ -245,7 +245,7 @@ if __name__ == "__main__":
                 print(f"Error at epoch {ep+1}: {e}", file=f)
                 print(traceback.format_exc(), file=f)
             sys.exit(1)
-    [L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch] = losses_epoch
+    [L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch] = losses_epoch
     X = X.detach().cpu()
 
 
@@ -281,5 +281,5 @@ if __name__ == "__main__":
     # save model
     plot.save_model_parameters(model, args.model_name, STORAGE_PATH)
     plot.save_checkpoint(model, adam, total_epoch, X, STORAGE_PATH)
-    plot.save_losses(STORAGE_PATH, total_epoch, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch)
+    plot.save_losses(STORAGE_PATH, total_epoch, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch)
     #plot.save_max_error_loss(STORAGE_PATH, total_epoch, L7_epoch)
