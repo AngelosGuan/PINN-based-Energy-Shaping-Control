@@ -30,7 +30,7 @@ testset_size = 5000
 
 # adaptive sampling
 SAMPLE_EVERY = 100 #30
-REPLACE_RATE = 0.001 #0.1
+REPLACE_RATE = 0.01 #0.1
 
 EARLY_STAGE_LEN = 50
 EARLY_REPLACE = 0.02

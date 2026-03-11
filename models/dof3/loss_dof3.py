@@ -66,8 +66,8 @@ def custom_inverse(M):
 
 class customLoss:
     def __init__(self):
-        self.B_left_annihilator = torch.tensor([[1.0, 0, 0, 0], [0, 1.0, 0, 0], [0, 0, 0, 1.0]], device=device)
-        self.B = torch.tensor([[0], [0], [1.0], [0]], device=device)
+        self.B_left_annihilator = torch.tensor([[0, 1.0, 0], [0, 0, 1.0]], device=device)
+        self.B = torch.tensor([[1.0], [0], [0]], device=device)
         # self.B = torch.tensor([[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 1.0, 1.0, 0],[0, 0, 0, 0, 0]], device=device)
         B_T = torch.transpose(self.B,0,1)
         self.B_pinv = torch.inverse(B_T @ self.B) @ B_T
@@ -76,22 +76,12 @@ class customLoss:
     # no vmap
     def get_PDE_Loss_trajectory(self, model, X):
         # X shape: (B, 8)
-        q_dot = X[:, 4:]  # (B, 4)
+        q_dot = X[:, 3:]  # (B, 4)
 
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-
-
-        if model.pos_def:
-            # only for KMK, change later
-            K = model.forward(X)
-            ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-            ks_inv = 1.0 / ks
-            K_inv = torch.diag_embed(ks_inv)
-            M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
-        else:
-            M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
 
 
@@ -131,21 +121,14 @@ class customLoss:
     def total_loss(self, model, X):
 
         # X shape: (B, 8)
-        q_dot = X[:, 4:]  # (B, 4)
+        q_dot = X[:, 3:]  # (B, 4)
 
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
 
-        if model.pos_def:
-            # only for KMK, change later
-            K = model.forward(X)
-            ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-            ks_inv = 1.0 / ks
-            K_inv = torch.diag_embed(ks_inv)
-            M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
-        else:
-            M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+
+        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
         # TODO: make this batch safe
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
@@ -175,34 +158,12 @@ class customLoss:
         # control_loss
         control_loss = bounded_quad_loss(us, dynamics.CONTROL_BOUND).mean()
 
-        # deviation_loss
-        # bound = 0.5
-        # # Frobenius norm of difference
-        # diff_norm = torch.linalg.norm(M_hat - M, ord='fro', dim=(1, 2))  # [n]
-        # base_norm = torch.linalg.norm(M, ord='fro', dim=(1, 2)) + 1e-12  # [n]
-        # diffs = diff_norm / base_norm 
-        # deviation_loss = bounded_quad_loss(diffs, bound)
-
-
-        # eig_loss
-        # alpha = 0.5
-        # M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
-        # a = M_eigvals.min(dim=-1).values * (1.0 - alpha)  # [n]
-        # b = M_eigvals.max(dim=-1).values * (1.0 + alpha)  # [n]
-        # eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
-        # a = a.unsqueeze(-1)
-        # b = b.unsqueeze(-1)
-        # lower_violation = torch.nn.functional.softplus(a - eigvals_hat)  # [n, d]
-        # upper_violation = torch.nn.functional.softplus(eigvals_hat - b)  # [n, d]
-        # penalties = (lower_violation + upper_violation).sum(dim=-1)  # [n]
-        # eig_loss = penalties.mean()
-
+        
         # eig_loss for better conditioning
-        #M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
         eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
-        cond_hat = eigvals_hat.max(dim=-1).values / eigvals_hat.min(dim=-1).values
-        #cond_M = M_eigvals.max(dim=-1).values / M_eigvals.min(dim=-1).values
-        cond_loss = ((cond_hat - 1.0)**2).mean()
+        eps = 1e-6
+        cond_hat = eigvals_hat.max(dim=-1).values / (eigvals_hat.min(dim=-1).values + eps)
+        cond_loss = (torch.log(cond_hat)**2).mean()
 
         # loss that encourages curvature 
         # Encourage M_hat to vary with q (avoid constant / identity solution).
@@ -226,7 +187,7 @@ class customLoss:
             only_inputs=True
         )[0]  # (B, 8)
 
-        grad_q = grad_X[:, :4]  # (B, 4)
+        grad_q = grad_X[:, :3]  # (B, 4)
         grad_norm2 = (grad_q ** 2).sum(dim=1)  # (B,)
 
         # penalize flatness: constant M_hat => grad_norm2 ~ 0 => large loss
@@ -250,15 +211,12 @@ class customLoss:
         # W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
-        total =  1.0*residual_loss + 0.001* control_loss + 0.01*sparse_loss + 1e-4*curvature_loss + 0.01* cond_loss
+        total =  1.0*residual_loss + 0.001* control_loss + 0.01*sparse_loss + 0.01*curvature_loss + 0.1* cond_loss
         
         losses = [
             residual_loss.detach().cpu(),
             control_loss.detach().cpu(),
-            #deviation_loss.detach().cpu(),
-            #eig_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
-            #pos_def_loss.detach().cpu()
             curvature_loss.detach().cpu(),
             cond_loss.detach().cpu()
         ]
@@ -266,23 +224,17 @@ class customLoss:
 
     #####################################################
     # new total loss with max error loss
-    def total_loss_checkpoint(self, model, X, max_error):
+    def total_loss_checkpoint(self, model, X):
 
         # X shape: (B, 8)
-        q_dot = X[:, 4:]  # (B, 4)
+        q_dot = X[:, 3:]  # (B, 4)
 
         M = model.calculate_M(X)            # (B, 4, 4)
         M_hat = model.calculate_M_hat(X)    # (B, 4, 4)
         M_inv = custom_inverse(M)        # (B, 4, 4)
-        if model.pos_def:
-            # only for KMK, change later
-            K = model.forward(X)
-            ks = torch.torch.diagonal(K, dim1=-2, dim2=-1)
-            ks_inv = 1.0 / ks
-            K_inv = torch.diag_embed(ks_inv)
-            M_hat_inv = torch.matmul(torch.matmul(K_inv, M_inv), K_inv)
-        else:
-            M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
+
+
+        M_hat_inv = custom_inverse(M_hat)  # (B, 4, 4)
 
         # TODO: make this batch safe
         Cqdot = dynamics.calculate_Cqdot(model.calculate_M, X)       # (B, 4, 1)
@@ -312,35 +264,45 @@ class customLoss:
         # control_loss
         control_loss = bounded_quad_loss(us, dynamics.CONTROL_BOUND).mean()
 
-        # deviation_loss
-        # bound = 0.5
-        # # Frobenius norm of difference
-        # diff_norm = torch.linalg.norm(M_hat - M, ord='fro', dim=(1, 2))  # [n]
-        # base_norm = torch.linalg.norm(M, ord='fro', dim=(1, 2)) + 1e-12  # [n]
-        # diffs = diff_norm / base_norm 
-        # deviation_loss = bounded_quad_loss(diffs, bound)
+        
+        # eig_loss for better conditioning
+        eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
+        eps = 1e-6
+        cond_hat = eigvals_hat.max(dim=-1).values / (eigvals_hat.min(dim=-1).values + eps)
+        cond_loss = (torch.log(cond_hat)**2).mean()
 
+        # loss that encourages curvature 
+        # Encourage M_hat to vary with q (avoid constant / identity solution).
+        # Use a cheap proxy: s(q) = ||M_hat(q)||_F^2 and penalize small ||ds/dq||.
+        # This is "nontrivial curvature" in the sense of non-flat dependence on q.
+        eps_curv = 1e-8
 
-        # eig_loss
-        # alpha = 0.5
-        # M_eigvals = torch.linalg.eigvalsh(M)      # [n, d]
-        # a = M_eigvals.min(dim=-1).values * (1.0 - alpha)  # [n]
-        # b = M_eigvals.max(dim=-1).values * (1.0 + alpha)  # [n]
-        # eigvals_hat = torch.linalg.eigvalsh(M_hat)  # [n, d]
-        # a = a.unsqueeze(-1)
-        # b = b.unsqueeze(-1)
-        # lower_violation = torch.nn.functional.softplus(a - eigvals_hat)  # [n, d]
-        # upper_violation = torch.nn.functional.softplus(eigvals_hat - b)  # [n, d]
-        # penalties = (lower_violation + upper_violation).sum(dim=-1)  # [n]
-        # eig_loss = penalties.mean()
+        X_curv = X.detach().clone().requires_grad_(True)
+        M_hat_curv = model.calculate_M_hat(X_curv)  # (B, 4, 4)
+
+        # s: (B,) per-sample scalar summary of M_hat
+        s = (M_hat_curv ** 2).sum(dim=(1, 2))
+
+        # gradient of s wrt X (vector-Jacobian product with ones gives per-sample grads)
+        grad_X = torch.autograd.grad(
+            outputs=s,
+            inputs=X_curv,
+            grad_outputs=torch.ones_like(s),
+            create_graph=True,
+            retain_graph=True,
+            only_inputs=True
+        )[0]  # (B, 8)
+
+        grad_q = grad_X[:, :3]  # (B, 4)
+        grad_norm2 = (grad_q ** 2).sum(dim=1)  # (B,)
+
+        # penalize flatness: constant M_hat => grad_norm2 ~ 0 => large loss
+        curvature_loss = (1.0 / (grad_norm2 + eps_curv)).mean()   
 
         # sparse_loss
         sparse_X = uniform_sampling(n_samples=100, input_dim=model.INPUT_DIM, device=X.device,
                      lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
         sparse_loss, _ = self.get_PDE_Loss(model, sparse_X)
-
-        # max error loss
-        #max_error_loss, _ = self.get_PDE_Loss(model, max_error)
 
 
         #### not used
@@ -351,18 +313,18 @@ class customLoss:
         # pos_def_loss = pos_penalties.mean()
 
 
+        # assert len(weights) == 5
+        # W1, W2, W4, W5, W6 = weights[0], weights[1], weights[2], weights[3], weights[4]
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
-        total =  1.0*residual_loss + 0.1*sparse_loss
+        total =  1.0*residual_loss + 0.001* control_loss + 0.01*sparse_loss + 0.01*curvature_loss + 0.1* cond_loss
         
         losses = [
             residual_loss.detach().cpu(),
             control_loss.detach().cpu(),
-            #deviation_loss.detach().cpu(),
-            #eig_loss.detach().cpu(),
-            #pos_def_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
-            #max_error_loss.detach().cpu()
+            curvature_loss.detach().cpu(),
+            cond_loss.detach().cpu()
         ]
         return total, losses
 

@@ -2,8 +2,8 @@ import core.plot as plot
 import core.sampling as sampling
 import core.training as training
 import core.utils as utils
-import models.dof4.loss_dof4 as loss
-import models.dof4.dynamics as dynamics
+import models.dof3.loss_dof3 as loss
+import models.dof3.dynamics as dynamics
 
 import torch
 import os
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         "--num_epoch_bfgs", type=int, default=0, help="Number of epochs for using L-BFGS for training"
     )
     parser.add_argument(
-        "--model_name", type=str, default="MLP_dof4", help="Folder name to store the output within results folder."
+        "--model_name", type=str, default="MLP_dof3", help="Folder name to store the output within results folder."
     )
     parser.add_argument(
         "--seed", type=int, default=-1, help="Seed used for random algorithms."
@@ -48,18 +48,12 @@ if __name__ == "__main__":
     # different configuration and import for different models
     config_opt = args.config_opt
     if config_opt == 1:
-        import configs.config_dof4_512 as config
-        import models.dof4.KMKhb_fourier_dof4 as models
-    elif config_opt == 2:
-        import configs.config_dof4_1024 as config
-        import models.dof4.KMKhb_fourier_dof4 as models
-    elif config_opt == 3:
-        import configs.config_dof4_512_JMJ as config
-        import models.dof4.KMKhb_fourier_dof4 as models
+        import configs.config_dof3 as config
+        import models.dof3.addition_fourier_dof3 as models
     else:
         # default
-        import configs.config_dof4 as config
-        import models.dof4.KMKhb_fourier_dof4 as models
+        import configs.config_dof3 as config
+        import models.dof3.addition_fourier_dof3 as models
 
     if not args.seed == -1:
         config.SEED = args.seed
@@ -89,24 +83,16 @@ if __name__ == "__main__":
     loss_funcs = loss.customLoss()
 
     # create model
-    model = models.MLP(hidden_width=config.HIDDEN_WIDTH,
-                 use_fourier=True,
-                 concat_raw=True,   # keep original x
-                 fourier_mapping_size=64,
-                 fourier_sigma=1.0,
-                 fourier_gaussian=True,
-                 fourier_num_bands=None,
-                 fourier_logspace=True).to(device)
+    model = models.MLP().to(device)
 
     # create training data from sampling
-    X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X = sampling.sobol_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     
     # call train
     (train_loss_epoch, grad_norm_epoch, 
-    [L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch], adam, X) = training.train(
+    [L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch], adam, X) = training.train(
         model,
         loss_funcs,
-        loss.calculate_weights,
         X,
         config.BATCH_SIZE,
         num_epochs_adam,
@@ -151,5 +137,5 @@ if __name__ == "__main__":
     # save model
     plot.save_model_parameters(model, args.model_name, STORAGE_PATH)
     plot.save_checkpoint(model, adam, num_epochs_adam, X, STORAGE_PATH)
-    plot.save_losses(STORAGE_PATH, num_epochs_adam, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch)
+    plot.save_losses(STORAGE_PATH, num_epochs_adam, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch )
 

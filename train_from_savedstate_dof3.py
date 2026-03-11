@@ -25,7 +25,7 @@ if __name__ == "__main__":
     # parse command line argument for gpu and cpu resourse
     parser = argparse.ArgumentParser(description="Training for 4DOF dynamic model")
     parser.add_argument(
-        "--model_name", type=str, default="resMLP_dof4", help="Folder name to store the output within results folder."
+        "--model_name", type=str, default="MLP_dof3", help="Folder name to store the output within results folder."
     )
     parser.add_argument(
         "--seed", type=int, default=-1, help="Seed used for random algorithms."
@@ -42,19 +42,14 @@ if __name__ == "__main__":
     # different configuration and import for different models
     config_opt = args.config_opt
     if config_opt == 1:
-        import configs.config_dof4_512 as config
-        import models.dof4.KMKhb_fourier_dof4 as models
-    elif config_opt == 2:
-        import configs.config_dof4_1024 as config
-        import models.dof4.KMKhb_fourier_dof4 as models
-    elif config_opt == 3:
-        import configs.config_dof4_512_JMJ as config
-        import models.dof4.JwMJhb_fourier_dof4 as models
-
+        import configs.config_dof3 as config
+        import models.dof3.addition_fourier_dof3 as models
     else:
         # default
-        import configs.config_dof4 as config
-        import models.dof4.KMKhb_fourier_dof4 as models
+        import configs.config_dof3 as config
+        import models.dof3.addition_fourier_dof3 as models
+
+
 
     if not args.seed == -1:
         config.SEED = args.seed
@@ -97,10 +92,9 @@ if __name__ == "__main__":
     
     # train with custom settings
     ############################
-    max_error_threshold = 0.01
     SAMPLE_EVERY = config.SAMPLE_EVERY
     REPLACE_RATE = config.REPLACE_RATE
-    num_epochs_adam = 20
+    num_epochs_adam = 200
     fixed_trainset_size = 3000
     batch_size = config.BATCH_SIZE
 
@@ -111,25 +105,18 @@ if __name__ == "__main__":
     # add 10000 lhs sample
 
     # use purely random sample from start.
-    X = sampling.lhs_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X = sampling.sobol_sampling(n_samples=config.num_train_data, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
 
-    X_fixed = sampling.lhs_sampling(n_samples=fixed_trainset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X_fixed = sampling.sobol_sampling(n_samples=fixed_trainset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
     train_set = torch.cat((X, X_fixed),dim=0)
     dataset = torch.utils.data.TensorDataset(train_set)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
-    # gather a fixed max error set
-    res_fixed = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed).view(-1)
-    res_adapt = loss_funcs.get_PDE_Loss_trajectory(model, X).view(-1)
-
-    mask_f, mask_a = res_fixed > max_error_threshold, res_adapt > max_error_threshold
-    max_error_set = torch.cat([X_fixed[mask_f], X[mask_a]]).clone().to(device)
-    
 
     # save losses for logging
     train_loss_epoch = []
     grad_norm_epoch = []
-    num_losses  = 7
+    num_losses  = 5
     losses_epoch = [[] for _ in range(num_losses)]
 
     ############################################
@@ -184,7 +171,7 @@ if __name__ == "__main__":
             # using minibatch
             for (batch,) in dataloader:
                 batch = batch.to(device)
-                train_loss_batch, losses = loss_funcs.total_loss_checkpoint(model, batch, max_error_set)
+                train_loss_batch, losses = loss_funcs.total_loss_checkpoint(model, batch)
                 
                 # TODO: schedule gradient descent alteratively for different loss if needed or adjust learning rate
                 # backward prop
@@ -258,7 +245,7 @@ if __name__ == "__main__":
                 print(f"Error at epoch {ep+1}: {e}", file=f)
                 print(traceback.format_exc(), file=f)
             sys.exit(1)
-    [L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch, L7_epoch] = losses_epoch
+    [L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch] = losses_epoch
     X = X.detach().cpu()
 
 
@@ -294,5 +281,5 @@ if __name__ == "__main__":
     # save model
     plot.save_model_parameters(model, args.model_name, STORAGE_PATH)
     plot.save_checkpoint(model, adam, total_epoch, X, STORAGE_PATH)
-    plot.save_losses(STORAGE_PATH, total_epoch, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch, L6_epoch)
-    plot.save_max_error_loss(STORAGE_PATH, total_epoch, L7_epoch)
+    plot.save_losses(STORAGE_PATH, total_epoch, train_loss_epoch, grad_norm_epoch, L1_epoch, L2_epoch, L3_epoch, L4_epoch, L5_epoch)
+    #plot.save_max_error_loss(STORAGE_PATH, total_epoch, L7_epoch)

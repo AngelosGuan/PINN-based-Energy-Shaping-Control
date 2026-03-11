@@ -13,5 +13,5 @@ export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export PYTHONHASHSEED="0"
 
-python main_dof4.py --num_epoch_adam 200 --num_epoch_bfgs 0 --model_name dof4_KMK_512 --config_opt 1 &
+python main_dof3.py --num_epoch_adam 200 --num_epoch_bfgs 0 --model_name default &
 wait

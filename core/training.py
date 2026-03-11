@@ -3,7 +3,7 @@ import torch
 import sys
 from core.utils import compute_gradient_norm, CosineAnnealingWarmupRestarts, gradients_all_zero
 import core.sampling as sampling 
-import models.dof4.dynamics as dynamics
+import models.dof3.dynamics as dynamics
 import traceback
 
 # for debug
@@ -31,13 +31,10 @@ def initialize_lbfgs_optimizer(model, lr, max_iter):
 
 ########################################################################
 # train function
-def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, num_epochs_bfgs, lr_adam, l2_regu_adam, lr_lbfgs, max_iter_lbfgs, print_path, SAMPLE_EVERY, REPLACE_RATE, EARLY_STAGE_LEN, EARLY_REPLACE, SAMPLE_EVERY_EARLY, WARM_UP):
+def train(model, loss_funcs, X, batch_size, num_epochs_adam, num_epochs_bfgs, lr_adam, l2_regu_adam, lr_lbfgs, max_iter_lbfgs, print_path, SAMPLE_EVERY, REPLACE_RATE, EARLY_STAGE_LEN, EARLY_REPLACE, SAMPLE_EVERY_EARLY, WARM_UP):
 
     # use GPU when available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # setup initial weights
-    weights = calculate_weights(loss_funcs, model, X, print_path)
 
     # setup dataloader
     dataset = torch.utils.data.TensorDataset(X)
@@ -62,7 +59,7 @@ def train(model, loss_funcs, calculate_weights, X, batch_size, num_epochs_adam, 
     # save losses for logging
     train_loss_epoch = []
     grad_norm_epoch = []
-    num_losses  = 6
+    num_losses  = 5
     losses_epoch = [[] for _ in range(num_losses)]
 
     ############################################
