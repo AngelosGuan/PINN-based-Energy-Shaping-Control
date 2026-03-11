@@ -8,21 +8,6 @@ CONTROL_BOUND = 40
 LOWER_BOUNDS = [-0.4, -1.062, -1.062, -2.5, -5.0, -6.0]
 UPPER_BOUNDS = [0.4, 1.149, 2.633, 2.5, 5.0, 8.0]
 
-m1 = 5
-m2 = 3.5
-m3 = 1.5
-mh = 10
-a1 = 0.53
-b1 = 0.47
-l1 = a1 + b1
-a2 = 0.15
-b2 = 0.35
-l2 = a2 + b2
-a3 = 0.25
-b3 = 0.25
-l3 = a3 + b3
-g = 9.8
-
 def calculate_Mmtx(X):
     single = (X.ndim == 1)
     if single:
@@ -35,21 +20,21 @@ def calculate_Mmtx(X):
     theta2 = X[:, 1]
     theta3 = X[:, 2]
 
-    m1 = torch.tensor(m1, device=device, dtype=dtype)
-    m2 = torch.tensor(m2, device=device, dtype=dtype)
-    m3 = torch.tensor(m3, device=device, dtype=dtype)
-    mh = torch.tensor(mh, device=device, dtype=dtype)
+    m1 = torch.tensor(5, device=device, dtype=dtype)
+    m2 = torch.tensor(3.5, device=device, dtype=dtype)
+    m3 = torch.tensor(1.5, device=device, dtype=dtype)
+    mh = torch.tensor(10, device=device, dtype=dtype)
 
-    a1 = torch.tensor(a1, device=device, dtype=dtype)
-    b1 = torch.tensor(b1, device=device, dtype=dtype)
+    a1 = torch.tensor(0.53, device=device, dtype=dtype)
+    b1 = torch.tensor(0.47, device=device, dtype=dtype)
     l1 = a1 + b1
 
-    a2 = torch.tensor(a2, device=device, dtype=dtype)
-    b2 = torch.tensor(b2, device=device, dtype=dtype)
+    a2 = torch.tensor(0.15, device=device, dtype=dtype)
+    b2 = torch.tensor(0.35, device=device, dtype=dtype)
     l2 = a2 + b2
 
-    a3 = torch.tensor(a3, device=device, dtype=dtype)
-    b3 = torch.tensor(b3, device=device, dtype=dtype)
+    a3 = torch.tensor(0.25, device=device, dtype=dtype)
+    b3 = torch.tensor(0.25, device=device, dtype=dtype)
 
     m11 = m1*a1**2 + (mh + m2 + m3)*l1**2
     m12 = -(m2*b2*l1 + m3*l1*l2)*torch.cos(theta1 - theta2)
@@ -86,23 +71,23 @@ def calculate_Nvect(X):
     theta2 = X[:, 1]
     theta3 = X[:, 2]
 
-    m1 = torch.tensor(m1, device=device, dtype=dtype)
-    m2 = torch.tensor(m2, device=device, dtype=dtype)
-    m3 = torch.tensor(m3, device=device, dtype=dtype)
-    mh = torch.tensor(mh, device=device, dtype=dtype)
+    m1 = torch.tensor(5, device=device, dtype=dtype)
+    m2 = torch.tensor(3.5, device=device, dtype=dtype)
+    m3 = torch.tensor(1.5, device=device, dtype=dtype)
+    mh = torch.tensor(10, device=device, dtype=dtype)
 
-    a1 = torch.tensor(a1, device=device, dtype=dtype)
-    b1 = torch.tensor(b1, device=device, dtype=dtype)
+    a1 = torch.tensor(0.53, device=device, dtype=dtype)
+    b1 = torch.tensor(0.47, device=device, dtype=dtype)
     l1 = a1 + b1
 
-    a2 = torch.tensor(a2, device=device, dtype=dtype)
-    b2 = torch.tensor(b2, device=device, dtype=dtype)
+    a2 = torch.tensor(0.15, device=device, dtype=dtype)
+    b2 = torch.tensor(0.35, device=device, dtype=dtype)
     l2 = a2 + b2
 
-    a3 = torch.tensor(a3, device=device, dtype=dtype)
-    b3 = torch.tensor(b3, device=device, dtype=dtype)
+    a3 = torch.tensor(0.25, device=device, dtype=dtype)
+    b3 = torch.tensor(0.25, device=device, dtype=dtype)
 
-    g = torch.tensor(g, device=device, dtype=dtype)
+    g = torch.tensor(9.8, device=device, dtype=dtype)
 
     g1 = -(m1*a1 + m2*l1 + m3*l1 + mh*l1)*g*torch.sin(theta1)
     g2 = (m2*b2 + m3*l2)*g*torch.sin(theta2)
