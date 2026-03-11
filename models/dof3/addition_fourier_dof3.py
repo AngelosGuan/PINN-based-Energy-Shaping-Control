@@ -150,7 +150,7 @@ class MLP(nn.Module):
         """
         return calculate_Nvect(X)
 
-    def calculate_M_hat(self, x):
+    def calculate_M_hat(self, X):
         """
         Compute shaped mass matrix M_hat(x) = K^T M K
         Input: x shape [8] or [n,8]
