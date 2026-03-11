@@ -93,10 +93,10 @@ def calculate_Nvect(X):
     g2 = (m2*b2 + m3*l2)*g*torch.sin(theta2)
     g3 = m3*b3*g*torch.sin(theta3)
 
-    G = torch.stack([g1, g2, g3], dim=-1)
+    G = torch.stack([g1, g2, g3], dim=-1).unsqueeze(-1)
 
     if single:
-        G = G.squeeze(0)
+        G = G.squeeze(0) #3,1
 
     return G
 
