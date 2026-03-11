@@ -1,6 +1,6 @@
 import torch
 from core.utils import bounded_quad_loss, damped_pseudo_inverse
-from models.dof4 import dynamics
+from models.dof3 import dynamics
 from core.sampling import uniform_sampling
 import numpy as np
 
