@@ -208,6 +208,11 @@ class customLoss:
         loss = - torch.exp(-(out_norm**2)/(delta**2)) * (1 - torch.exp(-(x_norm**2)))
         zero_loss = loss.mean()
 
+        # penalize no variance to avoid constant solution (in out1)
+        out = model.forward(X)
+        out1 = out[:,0]
+        variance_loss = -torch.var(out1)
+
 
         #### not used
 
@@ -222,7 +227,7 @@ class customLoss:
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
         #total =  1.0*residual_loss + 0.001* control_loss + 0.01*sparse_loss + 0.01*curvature_loss + 0.1* cond_loss + 0.001 * zero_loss
-        total =  1.0*residual_loss + 0.001* control_loss + 0.0001*curvature_loss + 0.0001 * zero_loss
+        total =  1.0*residual_loss + 0.001* control_loss + 0.0001*curvature_loss + 0.0001 * zero_loss + 0.0001 * variance_loss
         
         losses = [
             residual_loss.detach().cpu(),
@@ -339,11 +344,17 @@ class customLoss:
         loss = - torch.exp(-(out_norm**2)/(delta**2)) * (1 - torch.exp(-(x_norm**2)))
         zero_loss = loss.mean()
 
+        # penalize no variance to avoid constant solution (in out1)
+        out = model.forward(X)
+        out1 = out[:,0]
+        variance_loss = -torch.var(out1)
+
 
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
         #total =  1.0*residual_loss + 0.001* control_loss + 0.01*sparse_loss + 0.01*curvature_loss + 0.1* cond_loss + 0.001*zero_loss
-        total =  1.0*residual_loss + 0.001* control_loss + 0.001*curvature_loss + 0.001 * zero_loss
+        total =  1.0*residual_loss + 0.001* control_loss + 0.001*curvature_loss + 0.001 * zero_loss + 0.0001 * variance_loss
+        
         
         losses = [
             residual_loss.detach().cpu(),
