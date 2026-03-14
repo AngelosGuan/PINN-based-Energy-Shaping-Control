@@ -16,6 +16,7 @@ import models.dof3.loss_dof3 as loss
 import models.dof3.dynamics as dynamics
 
 import numpy as np
+import matplotlib.pyplot as plt
 from core.utils import compute_gradient_norm
 import traceback
 
