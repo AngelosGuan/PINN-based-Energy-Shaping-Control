@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
 
     # setup dataloader
-    X_fixed = sampling.sobol_sampling(n_samples=500, input_dim=6, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
+    X_fixed = sampling.sobol_sampling(n_samples=500, input_dim=8, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
 
     with torch.no_grad():
         residual = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed)
