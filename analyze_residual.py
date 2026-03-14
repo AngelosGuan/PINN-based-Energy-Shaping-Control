@@ -104,6 +104,17 @@ if __name__ == "__main__":
     # ------------------------------------------------------------
     # 3D scatter plot
     # ------------------------------------------------------------
+    X_cpu = X_fixed.detach().cpu()
+    res_cpu = residual_scalar.detach().cpu()
+
+    x_plot = X_cpu[:, 0].numpy()
+    y_plot = X_cpu[:, 1].numpy()
+    z_plot = X_cpu[:, 2].numpy()
+
+    low_mask = res_cpu <= q25
+    mid_mask = (res_cpu > q25) & (res_cpu < q75)
+    high_mask = res_cpu >= q75
+
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection="3d")
 
