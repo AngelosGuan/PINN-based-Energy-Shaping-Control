@@ -1,16 +1,19 @@
-import configs.config_dof4 as config
-import core.plot as plot
-import core.sampling as sampling
-import core.training as training
-import core.utils as utils
-import models.dof4.KMKhb_fourier_dof4 as models
-import models.dof4.loss_dof4 as loss
+import configs.config_dof3 as config
+import models.dof3.addition_fourier_dof3 as models
+
 import models.dof4.dynamics as dynamics
 
 import torch
 import os
 import argparse
 import sys
+
+import core.plot as plot
+import core.sampling as sampling
+import core.training as training
+import core.utils as utils
+import models.dof3.loss_dof3 as loss
+import models.dof3.dynamics as dynamics
 
 import numpy as np
 from core.utils import compute_gradient_norm
@@ -23,7 +26,7 @@ if __name__ == "__main__":
     # parse command line argument for gpu and cpu resourse
     parser = argparse.ArgumentParser(description="Training for 4DOF dynamic model")
     parser.add_argument(
-        "--model_name", type=str, default="resMLP_dof4", help="Folder name to store the output within results folder."
+        "--model_name", type=str, default="default", help="Folder name to store the output within results folder."
     )
     parser.add_argument(
         "--seed", type=int, default=config.SEED, help="Seed used for random algorithms."
@@ -69,78 +72,100 @@ if __name__ == "__main__":
     # load checkpoint
     total_epoch, X = plot.load_checkpoint(model, adam, STORAGE_PATH, device=device)
     
-    # train with custom settings
-    ############################
-    # setup custom weights 
-    weights = [1.0, 0.5, 1.0/10000, 1.0/100, 1.0/100, 1.0/470]
-    resonly_weights = [1.0, 0.0, 0.0, 0.0, 0.0]
-    SAMPLE_EVERY = config.SAMPLE_EVERY
-    REPLACE_RATE = config.REPLACE_RATE
-    num_epochs_adam = 200
-    fixed_trainset_size = 3000
-    batch_size = config.BATCH_SIZE
 
-    # train with custom schedule
-    ############################
 
     # setup dataloader
-    # add 10000 lhs sample
-    X_fixed = sampling.lhs_sampling(n_samples=fixed_trainset_size, input_dim=model.INPUT_DIM, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
-    train_set = torch.cat((X, X_fixed),dim=0)
-    dataset = torch.utils.data.TensorDataset(train_set)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
+    X_fixed = sampling.sobol_sampling(n_samples=500, input_dim=6, device=device, lower_bounds=dynamics.LOWER_BOUNDS, upper_bounds=dynamics.UPPER_BOUNDS)
 
-    # gather a fixed max error set
-    # largest 500 values
-    num_top = 500 
-    residual_over_X = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed)
-    # flatten residual in case it's (N,1)
-    residual_flat = residual_over_X.view(-1)
-    # get indices of largest residuals
-    topk_vals, topk_idx = torch.topk(residual_flat, k=num_top)
-    # select corresponding X points
-    print(topk_vals)
+    with torch.no_grad():
+        residual = loss_funcs.get_PDE_Loss_trajectory(model, X_fixed)
+        out = model.forward(X_fixed)
 
-    # 2. number of points with loss > 0.1
-    over_01 = (residual_flat > 0.1).sum().item()
+    # ------------------------------------------------------------
+    # Make residual shape safe: convert to (N,)
+    # ------------------------------------------------------------
+    residual_flat = residual.detach().reshape(residual.shape[0], -1)
 
-    # 3. number of points with loss > 0.5
-    over_05 = (residual_flat > 0.5).sum().item()
+    if residual_flat.shape[1] > 1:
+        residual_scalar = torch.norm(residual_flat, dim=1)
+    else:
+        residual_scalar = residual_flat.squeeze(1)
 
-    # 4. smallest loss value
-    min_loss = residual_flat.min().item()
-    print(f"Number of samples with loss > 0.1: {over_01}")
-    print(f"Number of samples with loss > 0.5: {over_05}")
-    print(f"Smallest residual loss: {min_loss:.6f}")
+    # ------------------------------------------------------------
+    # Percentile thresholds
+    # ------------------------------------------------------------
+    q25 = torch.quantile(residual_scalar, 0.25).item()
+    q75 = torch.quantile(residual_scalar, 0.75).item()
+    rmin = torch.min(residual_scalar).item()
+    rmax = torch.max(residual_scalar).item()
+
+    # 3d plot for loss distibution
+    # ------------------------------------------------------------
+    # 3D scatter plot
+    # ------------------------------------------------------------
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection="3d")
+
+    ax.scatter(
+        x_plot[high_mask.numpy()],
+        y_plot[high_mask.numpy()],
+        z_plot[high_mask.numpy()],
+        c="red",
+        s=30,
+        label="Top 25% residual"
+    )
+
+    ax.scatter(
+        x_plot[mid_mask.numpy()],
+        y_plot[mid_mask.numpy()],
+        z_plot[mid_mask.numpy()],
+        c="yellow",
+        s=30,
+        label="25%-75% residual"
+    )
+
+    ax.scatter(
+        x_plot[low_mask.numpy()],
+        y_plot[low_mask.numpy()],
+        z_plot[low_mask.numpy()],
+        c="green",
+        s=30,
+        label="Bottom 25% residual"
+    )
+
+    ax.set_xlabel("X[:, 0]")
+    ax.set_ylabel("X[:, 1]")
+    ax.set_zlabel("X[:, 2]")
+    ax.set_title("Residual Loss Distribution over First 3 Dimensions")
+    ax.legend()
+
+    plt.tight_layout()
+    plt_title = os.path.abspath(os.path.join(STORAGE_PATH, "scatter_plot_residual.png"))
+    plt.savefig(plt_title)
+    plt.close()
 
 
-    # largest 500 values
-    num_top = 500 
-    residual_over_adapt = loss_funcs.get_PDE_Loss_trajectory(model, X)
-    # flatten residual in case it's (N,1)
-    residual_flat_adapt = residual_over_adapt.view(-1)
-    # get indices of largest residuals
-    topk_vals, topk_idx = torch.topk(residual_flat_adapt, k=num_top)
-    # select corresponding X points
-    print(topk_vals)
+    # print out 10 random input's output
+    # Print stats and 10 random samples to file
+    # ------------------------------------------------------------
+    num_points = X_fixed.shape[0]
+    rand_idx = torch.randperm(num_points)[:10]
 
-    # 2. number of points with loss > 0.1
-    over_01 = (residual_flat_adapt > 0.1).sum().item()
+    with open(PRINT_PATH, "w") as f:
+        print("Residual statistics:", file=f)
+        print(f"25% cutoff: {q25:.8f}", file=f)
+        print(f"75% cutoff: {q75:.8f}", file=f)
+        print(f"Min residual: {rmin:.8f}", file=f)
+        print(f"Max residual: {rmax:.8f}", file=f)
+        print("", file=f)
 
-    # 3. number of points with loss > 0.5
-    over_05 = (residual_flat_adapt > 0.5).sum().item()
+        print("Randomly selected 10 samples:", file=f)
+        print("", file=f)
 
-    # 4. smallest loss value
-    min_loss = residual_flat_adapt.min().item()
-    print(f"Number of samples with loss > 0.1: {over_01}")
-    print(f"Number of samples with loss > 0.5: {over_05}")
-    print(f"Smallest residual loss: {min_loss:.6f}")
+        for i, idx in enumerate(rand_idx.tolist()):
+            print(f"Sample {i+1}, idx = {idx}", file=f)
+            print(f"X = {X_fixed[idx].detach().cpu().numpy()}", file=f)
+            print(f"Residual = {residual_scalar[idx].item():.8f}", file=f)
+            print(f"Output = {out[idx].detach().cpu().numpy()}", file=f)
+            print("", file=f)
 
-
-
-    ###########################
-
-
-    # print residual loss
-    plot.plot_loss_curve(residual_flat.detach().cpu(), plot_title="Residual Loss over fixed set", xlabel = "data point", ylabel = "Residual Loss", start_idx=0, filename = "fixed.png", file_path = STORAGE_PATH)
-    plot.plot_loss_curve(residual_flat_adapt.detach().cpu(), plot_title="Residual Loss over adaptive set", xlabel = "data point", ylabel = "Residual Loss", start_idx=0, filename = "adaptive.png", file_path = STORAGE_PATH)
