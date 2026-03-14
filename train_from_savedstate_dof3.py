@@ -1,8 +1,8 @@
 import core.plot as plot
 import core.sampling as sampling
 import core.utils as utils
-import models.dof4.loss_dof4 as loss
-import models.dof4.dynamics as dynamics
+import models.dof3.loss_dof3 as loss
+import models.dof3.dynamics as dynamics
 
 import torch
 import os

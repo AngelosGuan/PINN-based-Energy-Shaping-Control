@@ -1,8 +1,6 @@
 import configs.config_dof3 as config
 import models.dof3.addition_fourier_dof3 as models
 
-import models.dof4.dynamics as dynamics
-
 import torch
 import os
 import argparse
