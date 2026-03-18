@@ -25,7 +25,7 @@ if __name__ == "__main__":
         "--model_name", type=str, default="default", help="Folder name to store the output within results folder."
     )
     parser.add_argument(
-        "--seed", type=int, default=config.SEED, help="Seed used for random algorithms."
+        "--seed", type=int, default=-1, help="Seed used for random algorithms."
     )
     parser.add_argument(
         "--config_opt", type=int, default=0, help="config file to use, 0 for config_dof4, 1 for config_dof4_512, 2 for config_dof4_1024, ..."
@@ -36,9 +36,7 @@ if __name__ == "__main__":
     assert all(c.isalnum() or c == '_' for c in args.model_name), \
     "Error: model_name can only contain letters, numbers, and underscores (_)."
 
-    seed = args.seed
-    config.SEED = seed
-
+    config_opt = args.config_opt
     if config_opt == 1:
         import configs.config_dof3 as config
         import models.dof3.addition_fourier_dof3 as models
@@ -53,8 +51,12 @@ if __name__ == "__main__":
         import configs.config_dof3 as config
         import models.dof3.addition_fourier_dof3 as models
 
+    if not args.seed == -1:
+        config.SEED = args.seed
+
+
     # set random seed for reproductiveness
-    utils.set_seed(seed)
+    utils.set_seed(config.SEED)
 
     # get absolute storage path
     current_dir = os.getcwd()
