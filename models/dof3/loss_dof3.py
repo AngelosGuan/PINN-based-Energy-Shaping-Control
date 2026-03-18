@@ -234,7 +234,7 @@ class customLoss:
             control_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
             curvature_loss.detach().cpu(),
-            cond_loss.detach().cpu(),
+            variance_loss.detach().cpu(),
             zero_loss.detach().cpu()
         ]
         return total, losses
@@ -353,7 +353,7 @@ class customLoss:
 
         #total =  W1*residual_loss + W2* control_loss + W4*deviation_loss + W5*eig_loss + W6*sparse_loss 
         #total =  1.0*residual_loss + 0.001* control_loss + 0.01*sparse_loss + 0.01*curvature_loss + 0.1* cond_loss + 0.001*zero_loss
-        total =  1.0*residual_loss + 0.001* control_loss + 0.001*curvature_loss + 0.001 * zero_loss + 0.0001 * variance_loss
+        total =  1.0*residual_loss + 0.0001*curvature_loss + 0.0001 * zero_loss + 0.0001 * variance_loss
         
         
         losses = [
@@ -361,7 +361,7 @@ class customLoss:
             control_loss.detach().cpu(),
             sparse_loss.detach().cpu(),
             curvature_loss.detach().cpu(),
-            cond_loss.detach().cpu(),
+            variance_loss.detach().cpu(),
             zero_loss.detach().cpu()
         ]
         return total, losses
