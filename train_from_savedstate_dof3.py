@@ -47,6 +47,9 @@ if __name__ == "__main__":
     elif config_opt == 2:
         import configs.config_dof3 as config
         import models.dof3.nobias_dof3 as models
+    elif config_opt == 3:
+        import configs.config_dof3 as config
+        import models.dof3.allowsmallerM_dof3 as models
     else:
         # default
         import configs.config_dof3 as config
