@@ -1,6 +1,3 @@
-import configs.config_dof3 as config
-import models.dof3.addition_fourier_dof3 as models
-
 import torch
 import os
 import argparse
@@ -30,6 +27,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seed", type=int, default=config.SEED, help="Seed used for random algorithms."
     )
+    parser.add_argument(
+        "--config_opt", type=int, default=0, help="config file to use, 0 for config_dof4, 1 for config_dof4_512, 2 for config_dof4_1024, ..."
+    )
 
     args, _ = parser.parse_known_args()
 
@@ -38,6 +38,20 @@ if __name__ == "__main__":
 
     seed = args.seed
     config.SEED = seed
+
+    if config_opt == 1:
+        import configs.config_dof3 as config
+        import models.dof3.addition_fourier_dof3 as models
+    elif config_opt == 2:
+        import configs.config_dof3 as config
+        import models.dof3.nobias_dof3 as models
+    elif config_opt == 3:
+        import configs.config_dof3 as config
+        import models.dof3.allowsmallerM_dof3 as models
+    else:
+        # default
+        import configs.config_dof3 as config
+        import models.dof3.addition_fourier_dof3 as models
 
     # set random seed for reproductiveness
     utils.set_seed(seed)
